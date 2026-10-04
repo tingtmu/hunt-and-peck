@@ -112,6 +112,7 @@
     <Compile Include="Models\UiAutomationSelectHint.cs" />
     <Compile Include="Models\UiAutomationToggleHint.cs" />
     <Compile Include="Services\ConfiguredHintLabelService.cs" />
+    <Compile Include="Services\ForegroundActivation.cs" />
     <Compile Include="Services\HintBounds.cs" />
     <Compile Include="Services\HintFactoryMethod.cs" />
     <Compile Include="Services\HintLabelService.cs" />
@@ -124,6 +125,7 @@
     <Compile Include="Services\Interfaces\IKeyListenerService.cs" />
     <Compile Include="Services\Interfaces\IRegistryRunKey.cs" />
     <Compile Include="Services\Interfaces\IStartupRegistrationService.cs" />
+    <Compile Include="Services\Interfaces\ITaskbarShell.cs" />
     <Compile Include="Services\KeyListenerService.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -135,10 +137,17 @@
     <Compile Include="Services\UiAutomationPatternIds.cs" />
     <Compile Include="Services\UiAutomationHintFactory.cs" />
     <Compile Include="Services\UiAutomationHintProviderService.cs" />
+    <Compile Include="Services\OverlayOwnerCheck.cs" />
+    <Compile Include="Services\PollingWait.cs" />
     <Compile Include="Services\RegistryRunKey.cs" />
     <Compile Include="Services\StartupRegistrationService.cs" />
     <Compile Include="Services\Taskbar.cs" />
+    <Compile Include="Services\TaskbarGeometry.cs" />
+    <Compile Include="Services\TaskbarHintSource.cs" />
+    <Compile Include="Services\TaskbarReveal.cs" />
+    <Compile Include="Services\TaskbarRevealer.cs" />
     <Compile Include="Services\TrayNotifier.cs" />
+    <Compile Include="Services\Win32TaskbarShell.cs" />
     <Compile Include="Services\Uia\UiaAutomationFactory.cs" />
     <Compile Include="Services\Uia\UiaErrors.cs" />
     <Compile Include="Services\Uia\UiaExecutor.cs" />

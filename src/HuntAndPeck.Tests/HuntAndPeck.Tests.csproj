@@ -85,6 +85,12 @@
     <Compile Include="Services\FakeRegistryRunKey.cs" />
     <Compile Include="Services\HotKeyTransactionTest.cs" />
     <Compile Include="Services\StartupRegistrationServiceTest.cs" />
+    <Compile Include="Services\FakeClock.cs" />
+    <Compile Include="Services\FakeTaskbarShell.cs" />
+    <Compile Include="Services\PollingWaitTest.cs" />
+    <Compile Include="Services\TaskbarGeometryTest.cs" />
+    <Compile Include="Services\TaskbarHintSourceTest.cs" />
+    <Compile Include="Services\TaskbarRevealerTest.cs" />
     <Compile Include="Services\Uia\UiaErrorsTest.cs" />
     <Compile Include="Services\Uia\UiaExecutorTest.cs" />
     <Compile Include="Services\Uia\UiaWorkerTest.cs" />

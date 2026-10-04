@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Interop;
 using HuntAndPeck.Configuration;
 using HuntAndPeck.Diagnostics;
 using HuntAndPeck.Models;
@@ -44,6 +45,11 @@ namespace HuntAndPeck
             {
                 DataContext = vm
             };
+            if (vm.OverlayOwner != IntPtr.Zero && OverlayOwnerCheck.IsUsable(vm.OverlayOwner))
+            {
+                // E.g. a revealed auto-hide taskbar, which stays shown only while it or a window it owns is foreground
+                new WindowInteropHelper(view).Owner = vm.OverlayOwner;
+            }
             var closed = false;
             view.Closed += (sender, args) => closed = true;
             vm.CloseOverlay = () =>
@@ -85,7 +91,9 @@ namespace HuntAndPeck
         /// Shows the overlay for a headless (/hint, /tray) invocation, then shuts down once it closes and the
         /// selected hint has been invoked; shuts down straight away if there is nothing to show
         /// </summary>
-        private async void RunHeadless(Func<Task<HintSession>> enumerate)
+        /// <param name="enumerate">Enumerates the hints</param>
+        /// <param name="overlayClosed">Optional; called with the session and whether a hint was invoked once the overlay closed</param>
+        private async void RunHeadless(Func<Task<HintSession>> enumerate, Action<HintSession, bool> overlayClosed = null)
         {
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
             try
@@ -101,8 +109,20 @@ namespace HuntAndPeck
                 var view = CreateOverlayView(vm);
                 view.Closed += async (sender, args) =>
                 {
-                    await Task.WhenAny(vm.PendingInvocation, Task.Delay(HeadlessInvocationWait));
-                    Shutdown();
+                    try
+                    {
+                        overlayClosed?.Invoke(session, vm.HintInvoked);
+                        await Task.WhenAny(vm.PendingInvocation, Task.Delay(HeadlessInvocationWait));
+                    }
+                    catch (Exception ex)
+                    {
+                        // async void handler: report here, an escaping exception would surface on the dispatcher
+                        _exceptionHandlers.Report("Headless overlay close handling failed", ex);
+                    }
+                    finally
+                    {
+                        Shutdown();
+                    }
                 };
                 view.Show();
             }
@@ -216,7 +236,8 @@ namespace HuntAndPeck
             else if (isTray)
             {
                 // support headless tray mode
-                RunHeadless(() => _hintProviderService.EnumHintsAsync(Taskbar.FindPrimaryTaskbar()));
+                var taskbarHints = new TaskbarHintSource(_hintProviderService);
+                RunHeadless(taskbarHints.EnumHintsAsync, taskbarHints.OnOverlayClosed);
             }
             else if (!StartTray())
             {

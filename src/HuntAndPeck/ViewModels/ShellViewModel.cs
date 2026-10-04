@@ -27,6 +27,7 @@ namespace HuntAndPeck.ViewModels
         private readonly IKeyListenerService _keyListener;
         private readonly IUserSettings _settings;
         private readonly Action<string> _notifyWarning;
+        private readonly TaskbarHintSource _taskbarHints;
         private bool _startWithWindows;
         private string _toolTipText;
 
@@ -59,6 +60,7 @@ namespace HuntAndPeck.ViewModels
             _keyListener = keyListener;
             _settings = settings;
             _notifyWarning = notifyWarning;
+            _taskbarHints = new TaskbarHintSource(hintProviderService);
 
             RegisterHotKeys(keyListener, settings.Load());
             RefreshHotKeyStatus();
@@ -183,13 +185,8 @@ namespace HuntAndPeck.ViewModels
 
         private void _keyListener_OnTaskbarHotKeyActivated(object sender, EventArgs e)
         {
-            var taskbarHWnd = Taskbar.FindPrimaryTaskbar();
-            if (taskbarHWnd == IntPtr.Zero)
-            {
-                return;
-            }
-
-            RunSession(() => _hintProviderService.EnumHintsAsync(taskbarHWnd), ShowHintOverlay);
+            // Started from the hotkey message, which gives this process the right to activate the taskbar
+            RunSession(() => _taskbarHints.EnumHintsAsync(), ShowTaskbarOverlay);
         }
 
         private void _keyListener_OnDebugHotKeyActivated(object sender, EventArgs e)
@@ -199,8 +196,20 @@ namespace HuntAndPeck.ViewModels
 
         private void ShowHintOverlay(HintSession session)
         {
+            _showOverlay(CreateOverlayViewModel(session));
+        }
+
+        private void ShowTaskbarOverlay(HintSession session)
+        {
+            var vm = CreateOverlayViewModel(session);
+            _showOverlay(vm);
+            _taskbarHints.OnOverlayClosed(session, vm.HintInvoked);
+        }
+
+        private OverlayViewModel CreateOverlayViewModel(HintSession session)
+        {
             var fontSize = _settings.Load().FontSize;
-            _showOverlay(new OverlayViewModel(session, _hintLabelService, _hintProviderService.InvokeHintAsync, fontSize));
+            return new OverlayViewModel(session, _hintLabelService, _hintProviderService.InvokeHintAsync, fontSize);
         }
 
         /// <summary>

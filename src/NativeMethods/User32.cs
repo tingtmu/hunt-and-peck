@@ -57,5 +57,37 @@ namespace HuntAndPeck.NativeMethods
 
         [DllImport("user32.dll", SetLastError = true)]
         public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool IsWindow(IntPtr hWnd);
+
+        /// <summary>MonitorFromWindow flag: the monitor nearest to the window if it intersects none</summary>
+        public const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint dwFlags);
+
+        /// <summary>
+        /// Gets the monitor and work area bounds. For a per-monitor DPI aware caller these are physical pixels.
+        /// </summary>
+        /// <remarks>Does not set the last error</remarks>
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+        /// <summary>True if the window's thread has not processed messages for a while (5 s)</summary>
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool IsHungAppWindow(IntPtr hWnd);
+
+        public const uint WM_NULL = 0x0000;
+
+        /// <summary>SendMessageTimeout flag: return at once, without waiting, if the receiving thread is hung</summary>
+        public const uint SMTO_ABORTIFHUNG = 0x0002;
+
+        /// <returns>Non-zero on success; zero on timeout or failure (see the last error)</returns>
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint msg, UIntPtr wParam, IntPtr lParam, uint fuFlags, uint uTimeout, out UIntPtr lpdwResult);
     }
 }

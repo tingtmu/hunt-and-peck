@@ -31,6 +31,7 @@ namespace HuntAndPeck.ViewModels
         {
             _invokeHint = invokeHint;
             _bounds = session.OwningWindowBounds;
+            OverlayOwner = session.OverlayOwner;
 
             var labels = hintLabelService.GetHintStrings(session.Hints.Count());
             for (int i = 0; i < labels.Count; ++i)
@@ -79,6 +80,15 @@ namespace HuntAndPeck.ViewModels
         /// The most recent hint invocation (completed if none). Headless mode waits for it before exiting.
         /// </summary>
         public Task PendingInvocation { get; private set; } = Task.CompletedTask;
+
+        /// <summary>True once a hint was selected and invoked</summary>
+        public bool HintInvoked => _invoked;
+
+        /// <summary>
+        /// Window (of another process) that must own the overlay window, else IntPtr.Zero; see
+        /// <see cref="HintSession.OverlayOwner"/>
+        /// </summary>
+        public IntPtr OverlayOwner { get; }
 
         public string MatchString
         {
