@@ -12,5 +12,8 @@
         Select,
         ExpandCollapse,
         Focus,
+
+        /// <summary>LegacyIAccessible DoDefaultAction; only offered where allowed (bars mode)</summary>
+        LegacyDefaultAction,
     }
 }

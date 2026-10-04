@@ -31,7 +31,12 @@ namespace HuntAndPeck.Services
         /// <summary>
         /// Creates the cache request. Elements stay in Full mode so hints can make live calls when invoked.
         /// </summary>
-        public static IUIAutomationCacheRequest CreateRequest(IUIAutomation automation)
+        /// <param name="automation">The automation object of the calling (worker) thread</param>
+        /// <param name="includeLegacy">
+        /// Also cache what the LegacyIAccessible fallback needs (<see cref="ReadCapabilities"/> with includeLegacy,
+        /// <see cref="ReadControlType"/>); bars mode only, so the normal request stays as small as before
+        /// </param>
+        public static IUIAutomationCacheRequest CreateRequest(IUIAutomation automation, bool includeLegacy = false)
         {
             var request = automation.CreateCacheRequest();
             request.TreeScope = TreeScope.TreeScope_Element;
@@ -46,7 +51,21 @@ namespace HuntAndPeck.Services
             }
             request.AddProperty(UIA_PropertyIds.UIA_ValueIsReadOnlyPropertyId);
             request.AddProperty(UIA_PropertyIds.UIA_RangeValueIsReadOnlyPropertyId);
+            if (includeLegacy)
+            {
+                request.AddProperty(UIA_PropertyIds.UIA_IsLegacyIAccessiblePatternAvailablePropertyId);
+                request.AddProperty(UIA_PropertyIds.UIA_LegacyIAccessibleDefaultActionPropertyId);
+                request.AddProperty(UIA_PropertyIds.UIA_ControlTypePropertyId);
+            }
             return request;
+        }
+
+        /// <summary>
+        /// Reads the element's control type id (UIA_*ControlTypeId); cached only by a request with includeLegacy
+        /// </summary>
+        public static int ReadControlType(IUIAutomationElement element, UiaPropertySource source)
+        {
+            return source == UiaPropertySource.Cached ? element.CachedControlType : element.CurrentControlType;
         }
 
         /// <summary>
@@ -60,7 +79,13 @@ namespace HuntAndPeck.Services
         /// <summary>
         /// Reads the element's capabilities; no cross-process call when <paramref name="source"/> is cached
         /// </summary>
-        public static UiAutomationCapabilities ReadCapabilities(IUIAutomationElement element, UiaPropertySource source)
+        /// <param name="element">The element</param>
+        /// <param name="source">Where to read the properties</param>
+        /// <param name="includeLegacy">
+        /// Also read <see cref="UiAutomationCapabilities.LegacyDefaultActionAvailable"/>; off where it would not be
+        /// used, as reading it live costs extra cross-process calls
+        /// </param>
+        public static UiAutomationCapabilities ReadCapabilities(IUIAutomationElement element, UiaPropertySource source, bool includeLegacy = false)
         {
             var capabilities = UiAutomationCapabilities.None;
             foreach (var flagProperty in s_flagProperties)
@@ -82,7 +107,23 @@ namespace HuntAndPeck.Services
             {
                 capabilities |= UiAutomationCapabilities.RangeValueReadOnly;
             }
+            if (includeLegacy && HasLegacyDefaultAction(element, source))
+            {
+                capabilities |= UiAutomationCapabilities.LegacyDefaultActionAvailable;
+            }
             return capabilities;
+        }
+
+        private static bool HasLegacyDefaultAction(IUIAutomationElement element, UiaPropertySource source)
+        {
+            if (!ReadBool(element, source, UIA_PropertyIds.UIA_IsLegacyIAccessiblePatternAvailablePropertyId, false))
+            {
+                return false;
+            }
+            var defaultAction = source == UiaPropertySource.Cached
+                ? element.GetCachedPropertyValue(UIA_PropertyIds.UIA_LegacyIAccessibleDefaultActionPropertyId)
+                : element.GetCurrentPropertyValue(UIA_PropertyIds.UIA_LegacyIAccessibleDefaultActionPropertyId);
+            return !string.IsNullOrWhiteSpace(defaultAction as string);
         }
 
         /// <returns>The boolean, else <paramref name="fallback"/> if the provider gave none (not-supported sentinel)</returns>

@@ -54,15 +54,18 @@
     </Compile>
     <Compile Include="APPBARDATA.cs" />
     <Compile Include="Constants.cs" />
+    <Compile Include="Dwmapi.cs" />
     <Compile Include="HotKeyEventArgs.cs" />
     <Compile Include="Kernel32.cs" />
     <Compile Include="KeyModifier.cs" />
     <Compile Include="MONITORINFO.cs" />
+    <Compile Include="MonitorQueries.cs" />
     <Compile Include="POINT.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RECT.cs" />
     <Compile Include="Shell32.cs" />
     <Compile Include="User32.cs" />
+    <Compile Include="WindowEnumeration.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

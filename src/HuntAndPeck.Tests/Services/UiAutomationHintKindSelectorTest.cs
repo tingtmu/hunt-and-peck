@@ -7,7 +7,7 @@ namespace HuntAndPeck.Tests.Services
 {
     public class UiAutomationHintKindSelectorTest
     {
-        private const int AllFlagCombinations = 1 << 8;
+        private const int AllFlagCombinations = 1 << 9;
 
         [Theory]
         [InlineData(C.None, K.None)]
@@ -45,8 +45,41 @@ namespace HuntAndPeck.Tests.Services
             Assert.Equal(expected, UiAutomationHintKindSelector.Select(capabilities));
         }
 
-        /// <summary>
-        /// Every flag combination matches the pre-cache logic: GetCurrentPattern probes in order Invoke,
+        [Theory]
+        [InlineData(C.LegacyDefaultActionAvailable, K.LegacyDefaultAction)]
+        [InlineData(C.LegacyDefaultActionAvailable | C.ValueAvailable | C.ValueReadOnly, K.LegacyDefaultAction)]
+        [InlineData(C.LegacyDefaultActionAvailable | C.InvokeAvailable, K.Invoke)]
+        [InlineData(C.LegacyDefaultActionAvailable | C.ToggleAvailable, K.Toggle)]
+        [InlineData(C.LegacyDefaultActionAvailable | C.ValueAvailable, K.Focus)]
+        [InlineData(C.None, K.None)]
+        public void LegacyDefaultAction_IsLastResort_WhenAllowed(C capabilities, K expected)
+        {
+            Assert.Equal(expected, UiAutomationHintKindSelector.Select(capabilities, true));
+        }
+
+        [Theory]
+        [InlineData(50000, true)]   // Button
+        [InlineData(50007, true)]   // ListItem
+        [InlineData(50011, true)]   // MenuItem
+        [InlineData(50019, true)]   // TabItem
+        [InlineData(50031, true)]   // SplitButton
+        [InlineData(50020, false)]  // Text
+        [InlineData(50006, false)]  // Image
+        [InlineData(50026, false)]  // Group
+        [InlineData(50033, false)]  // Pane
+        public void LegacyAction_OnlyForClickableControlTypes(int controlType, bool expected)
+        {
+            Assert.Equal(expected, UiAutomationHintKindSelector.IsLegacyActionControlType(controlType));
+        }
+
+        [Fact]
+        public void LegacyDefaultAction_IsIgnored_WhenNotAllowed()
+        {
+            Assert.Equal(K.None, UiAutomationHintKindSelector.Select(C.LegacyDefaultActionAvailable));
+            Assert.Equal(K.None, UiAutomationHintKindSelector.Select(C.LegacyDefaultActionAvailable, false));
+        }
+
+        /// <summary>        /// Every flag combination matches the pre-cache logic: GetCurrentPattern probes in order Invoke,
         /// Toggle, SelectionItem, ExpandCollapse, then writable Value, then writable RangeValue.
         /// </summary>
         [Fact]

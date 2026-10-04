@@ -99,7 +99,7 @@ namespace HuntAndPeck
             try
             {
                 var session = await enumerate();
-                if (session == null)
+                if (!HintSession.IsShowable(session))
                 {
                     Shutdown();
                     return;
@@ -236,8 +236,8 @@ namespace HuntAndPeck
             else if (isTray)
             {
                 // support headless tray mode
-                var taskbarHints = new TaskbarHintSource(_hintProviderService);
-                RunHeadless(taskbarHints.EnumHintsAsync, taskbarHints.OnOverlayClosed);
+                var barHints = new BarsHintSource(_hintProviderService);
+                RunHeadless(barHints.EnumHintsAsync, barHints.OnOverlayClosed);
             }
             else if (!StartTray())
             {

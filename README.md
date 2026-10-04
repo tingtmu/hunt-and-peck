@@ -44,7 +44,10 @@ Where things live:
 
 1. Launch the executable.
 2. With any window focused, press `Alt + ;`
-    - The tray can be highlighted with `Ctrl + ;`
+    - `Ctrl + ;` is bars mode: hints for the taskbar (also an auto-hidden one, which is shown while the
+      overlay is open) and for edge-docked bars such as Zebar or YASB, on the monitor under the mouse. Pinned
+      and running apps on the taskbar get hints too; selecting one acts like a click (switch to, minimize or
+      launch the app).
 3. An overlay window will be displayed, type any of the hint characters you see.
 
 Alternatively, Hunt and Peck can be launched via the command-line or AutoHotKey by specifying `/hint`:
@@ -52,7 +55,7 @@ Alternatively, Hunt and Peck can be launched via the command-line or AutoHotKey 
 hap.exe /hint
 ```
 
-Or in tray mode with
+Or in bars mode (as `Ctrl + ;`) with
 ```
 hap.exe /tray
 ```

@@ -8,7 +8,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
-using UIAutomationClient;
 
 namespace HuntAndPeck.Services
 {
@@ -24,21 +23,16 @@ namespace HuntAndPeck.Services
         /// <summary>Overall time allowed to invoke a hint</summary>
         public static readonly TimeSpan InvocationTimeout = TimeSpan.FromSeconds(5);
 
-        /// <summary>
-        /// A scan is stopped at the first per-element UIA timeout: the element didn't answer within the
-        /// transaction timeout, so the target is hung and every further element would cost another timeout.
-        /// </summary>
-        private const int MaxElementTimeoutsPerScan = 1;
-
-        /// <summary>Only the first few skipped elements of a scan are logged individually</summary>
-        private const int MaxLoggedSkipsPerScan = 3;
+        private static readonly Stopwatch Clock = Stopwatch.StartNew();
 
         private readonly UiaExecutor _executor;
+        private readonly BarHintEnumerator _barEnumerator;
 
         /// <param name="notifyUser">Optional user notification (tray balloon) for persistent UIA trouble</param>
         public UiAutomationHintProviderService(Action<string> notifyUser = null)
         {
             _executor = new UiaExecutor("HuntAndPeck UIA worker", notifyUser);
+            _barEnumerator = new BarHintEnumerator(ScanBarAsync, Task.Delay, () => Clock.Elapsed, EnumerationTimeout);
         }
 
         public Task<HintSession> EnumHintsAsync()
@@ -61,6 +55,15 @@ namespace HuntAndPeck.Services
             return EnumAsync(hWnd, UiAutomationHintFactory.CreateDebugHint);
         }
 
+        /// <remarks>
+        /// Each window is scanned on its own (<see cref="BarHintEnumerator"/>), within <see cref="EnumerationTimeout"/>
+        /// and an overall deadline; a window that fails, hangs or vanishes is logged and left out, the others
+        /// still get hints
+        /// </remarks>
+        public Task<HintSession> EnumBarHintsAsync(IReadOnlyList<IntPtr> windows, Rect monitor)
+        {
+            return _barEnumerator.EnumAsync(GetWindowBounds(windows), monitor);
+        }
         /// <remarks>
         /// Target failures (element gone, app hung/closed) and timeouts are logged and do not fault the task
         /// </remarks>
@@ -129,6 +132,53 @@ namespace HuntAndPeck.Services
             }
         }
 
+        /// <returns>The window's hints, else null if it could not be enumerated (logged)</returns>
+        private async Task<List<Hint>> ScanBarAsync(WindowScanTarget target, TimeSpan timeout)
+        {
+            try
+            {
+                return await _executor.RunAsync(() => WindowHintScanner.Scan(target), timeout).ConfigureAwait(false);
+            }
+            catch (TimeoutException ex)
+            {
+                Trace.TraceWarning("Bars: hint enumeration for window {0} abandoned, leaving it out: {1}", target.Handle, ex.Message);
+                return null;
+            }
+            catch (Exception ex) when (IsShutdown(ex))
+            {
+                Trace.TraceInformation("Bars: hint enumeration for window {0} cancelled, UI Automation is shutting down: {1}", target.Handle, ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>The bounds (physical pixels) of each window that still has bounds</summary>
+        private static List<KeyValuePair<IntPtr, Rect>> GetWindowBounds(IReadOnlyList<IntPtr> windows)
+        {
+            var result = new List<KeyValuePair<IntPtr, Rect>>();
+            foreach (var hWnd in windows)
+            {
+                Rect bounds;
+                if (TryGetWindowBounds(hWnd, out bounds))
+                {
+                    result.Add(new KeyValuePair<IntPtr, Rect>(hWnd, bounds));
+                }
+            }
+            return result;
+        }
+        private static bool TryGetWindowBounds(IntPtr hWnd, out Rect bounds)
+        {
+            // Physical pixels: the process is per-monitor DPI aware
+            var raw = new RECT();
+            if (!User32.GetWindowRect(hWnd, ref raw))
+            {
+                Trace.TraceWarning("GetWindowRect failed for window {0}, error {1}", hWnd, Marshal.GetLastWin32Error());
+                bounds = Rect.Empty;
+                return false;
+            }
+            bounds = raw;
+            return true;
+        }
+
         /// <summary>
         /// Enumerates all the hints from the given window. Runs on the UIA worker thread.
         /// </summary>
@@ -137,96 +187,23 @@ namespace HuntAndPeck.Services
         /// <returns>A hint session, else null if the window could not be enumerated</returns>
         private static HintSession EnumWindowHints(IntPtr hWnd, HintFactoryMethod hintFactory)
         {
-            var stopwatch = Stopwatch.StartNew();
-
-            // Window bounds, in physical pixels (the process is per-monitor DPI aware)
-            var rawWindowBounds = new RECT();
-            if (!User32.GetWindowRect(hWnd, ref rawWindowBounds))
-            {
-                Trace.TraceWarning("GetWindowRect failed for window {0}, error {1}", hWnd, Marshal.GetLastWin32Error());
-                return null;
-            }
-            Rect windowBounds = rawWindowBounds;
-
-            var scan = UiAutomationElementScanner.TryScan(hWnd);
-            if (scan == null)
+            Rect windowBounds;
+            if (!TryGetWindowBounds(hWnd, out windowBounds))
             {
                 return null;
             }
 
-            var findMs = stopwatch.ElapsedMilliseconds;
-            var hints = CreateHints(hWnd, windowBounds, scan, hintFactory);
-
-            Trace.TraceInformation(
-                "Window {0}: {1} elements, {2} hints in {3} ms (find {4} ms, {5} properties)",
-                hWnd, scan.Elements.Count, hints.Count, stopwatch.ElapsedMilliseconds, findMs, scan.Source);
+            var hints = WindowHintScanner.Scan(new WindowScanTarget(hWnd, windowBounds, windowBounds, hintFactory, false));
+            if (hints == null)
+            {
+                return null;
+            }
             return new HintSession
             {
                 Hints = hints,
                 OwningWindow = hWnd,
                 OwningWindowBounds = windowBounds,
             };
-        }
-
-        /// <summary>
-        /// Creates a hint for each element, skipping (and counting) elements that vanish or fail mid-scan
-        /// </summary>
-        private static List<Hint> CreateHints(IntPtr hWnd, Rect windowBounds, ElementScan scan, HintFactoryMethod hintFactory)
-        {
-            var result = new List<Hint>();
-            var skipped = 0;
-            var timeouts = 0;
-
-            foreach (var element in scan.Elements)
-            {
-                try
-                {
-                    var hint = CreateHint(hWnd, windowBounds, element, scan.Source, hintFactory);
-                    if (hint != null)
-                    {
-                        result.Add(hint);
-                    }
-                }
-                catch (Exception ex) when (UiaErrors.IsTargetFailure(ex))
-                {
-                    skipped++;
-                    if (skipped <= MaxLoggedSkipsPerScan)
-                    {
-                        Trace.TraceInformation("Window {0}: skipped element: {1}", hWnd, UiaErrors.Describe(ex));
-                    }
-                    if (UiaErrors.IsTimeout(ex) && ++timeouts >= MaxElementTimeoutsPerScan)
-                    {
-                        Trace.TraceWarning("Window {0}: scan stopped after {1} UIA timeouts (target not responding)", hWnd, timeouts);
-                        break;
-                    }
-                }
-            }
-
-            if (skipped > 0)
-            {
-                Trace.TraceInformation("Window {0}: {1} of {2} elements skipped (vanished or not responding)", hWnd, skipped, scan.Elements.Count);
-            }
-            return result;
-        }
-
-        /// <summary>
-        /// Creates the hint for one element if it is visible within the window
-        /// </summary>
-        private static Hint CreateHint(
-            IntPtr hWnd,
-            Rect windowBounds,
-            IUIAutomationElement element,
-            UiaPropertySource source,
-            HintFactoryMethod hintFactory)
-        {
-            // Physical screen pixels, same unit as the window bounds
-            var bounds = UiAutomationElementCache.ReadBounds(element, source);
-            Rect windowCoords;
-            if (!HintBounds.TryToWindowCoordinates(bounds.left, bounds.top, bounds.right, bounds.bottom, windowBounds, out windowCoords))
-            {
-                return null;
-            }
-            return hintFactory(hWnd, windowCoords, element, source);
         }
     }
 }

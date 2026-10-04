@@ -27,7 +27,7 @@ namespace HuntAndPeck.ViewModels
         private readonly IKeyListenerService _keyListener;
         private readonly IUserSettings _settings;
         private readonly Action<string> _notifyWarning;
-        private readonly TaskbarHintSource _taskbarHints;
+        private readonly BarsHintSource _barHints;
         private bool _startWithWindows;
         private string _toolTipText;
 
@@ -60,7 +60,7 @@ namespace HuntAndPeck.ViewModels
             _keyListener = keyListener;
             _settings = settings;
             _notifyWarning = notifyWarning;
-            _taskbarHints = new TaskbarHintSource(hintProviderService);
+            _barHints = new BarsHintSource(hintProviderService);
 
             RegisterHotKeys(keyListener, settings.Load());
             RefreshHotKeyStatus();
@@ -185,8 +185,8 @@ namespace HuntAndPeck.ViewModels
 
         private void _keyListener_OnTaskbarHotKeyActivated(object sender, EventArgs e)
         {
-            // Started from the hotkey message, which gives this process the right to activate the taskbar
-            RunSession(() => _taskbarHints.EnumHintsAsync(), ShowTaskbarOverlay);
+            // Bars mode. Started from the hotkey message, which gives this process the right to activate the taskbar.
+            RunSession(() => _barHints.EnumHintsAsync(), ShowBarsOverlay);
         }
 
         private void _keyListener_OnDebugHotKeyActivated(object sender, EventArgs e)
@@ -199,11 +199,11 @@ namespace HuntAndPeck.ViewModels
             _showOverlay(CreateOverlayViewModel(session));
         }
 
-        private void ShowTaskbarOverlay(HintSession session)
+        private void ShowBarsOverlay(HintSession session)
         {
             var vm = CreateOverlayViewModel(session);
             _showOverlay(vm);
-            _taskbarHints.OnOverlayClosed(session, vm.HintInvoked);
+            _barHints.OnOverlayClosed(session, vm.HintInvoked);
         }
 
         private OverlayViewModel CreateOverlayViewModel(HintSession session)
@@ -227,7 +227,7 @@ namespace HuntAndPeck.ViewModels
             try
             {
                 var session = await enumerate();
-                if (session != null)
+                if (HintSession.IsShowable(session))
                 {
                     // Blocks (modal) until the overlay closes, keeping the session active meanwhile
                     show(session);

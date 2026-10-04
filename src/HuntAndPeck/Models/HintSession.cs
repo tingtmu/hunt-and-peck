@@ -1,11 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Windows;
 
 namespace HuntAndPeck.Models
 {
     public class HintSession
     {
+        /// <summary>
+        /// True if the session has hints to show; an empty session is logged, as it gets no overlay
+        /// </summary>
+        public static bool IsShowable(HintSession session)
+        {
+            if (session == null)
+            {
+                return false;
+            }
+            if (session.Hints == null || session.Hints.Count == 0)
+            {
+                Trace.TraceInformation("Window {0}: no hints; no overlay shown", session.OwningWindow);
+                return false;
+            }
+            return true;
+        }
+
         /// <summary>
         /// The hints
         /// </summary>

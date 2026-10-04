@@ -106,7 +106,7 @@ namespace HuntAndPeck.Tests.ViewModels
                 }, (context, ex) => errors.Add(ex));
 
                 keys.Press();
-                provider.Pending[0].SetResult(new HintSession { Hints = new List<Hint>() });
+                provider.Pending[0].SetResult(new HintSession { Hints = new List<Hint> { new FakeHint() } });
 
                 Assert.Equal(1, shows);
                 Assert.Single(provider.Pending);
@@ -114,6 +114,37 @@ namespace HuntAndPeck.Tests.ViewModels
 
                 keys.Press();
                 Assert.Equal(2, provider.Pending.Count);
+            }
+        }
+
+        [Fact]
+        public void SessionWithoutHints_ShowsNoOverlay_AndFlagResets()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var provider = new FakeHintProvider();
+                var keys = new FakeKeyListener();
+                var shows = 0;
+                CreateShell(provider, keys, vm => shows++, (context, ex) => { });
+
+                keys.Press();
+                provider.Pending[0].SetResult(new HintSession { Hints = new List<Hint>() });
+
+                Assert.Equal(0, shows);
+                keys.Press();
+                Assert.Equal(2, provider.Pending.Count);
+            }
+        }
+
+        private sealed class FakeHint : Hint
+        {
+            public FakeHint()
+                : base(IntPtr.Zero, new System.Windows.Rect(0, 0, 10, 10))
+            {
+            }
+
+            public override void Invoke()
+            {
             }
         }
 
@@ -256,6 +287,8 @@ namespace HuntAndPeck.Tests.ViewModels
             }
 
             public Task<HintSession> EnumHintsAsync(IntPtr handle) => EnumHintsAsync();
+
+            public Task<HintSession> EnumBarHintsAsync(IReadOnlyList<IntPtr> windows, System.Windows.Rect monitor) => EnumHintsAsync();
 
             public Task InvokeHintAsync(Hint hint) => Task.CompletedTask;
         }

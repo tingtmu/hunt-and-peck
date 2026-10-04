@@ -27,12 +27,14 @@ namespace HuntAndPeck.Services
     /// </summary>
     internal static class UiAutomationElementScanner
     {
+        /// <param name="hWnd">The window</param>
+        /// <param name="includeLegacy">Also cache the LegacyIAccessible properties and control type (bars mode)</param>
         /// <returns>The elements found, else null if the window could not be enumerated</returns>
-        public static ElementScan TryScan(IntPtr hWnd)
+        public static ElementScan TryScan(IntPtr hWnd, bool includeLegacy = false)
         {
             try
             {
-                return ScanWithFallback(hWnd);
+                return ScanWithFallback(hWnd, includeLegacy);
             }
             catch (Exception ex) when (UiaErrors.IsTargetFailure(ex) || ex is ArgumentException)
             {
@@ -48,20 +50,20 @@ namespace HuntAndPeck.Services
         /// reading properties live per element. A timeout is not retried: the target is hung, and a second
         /// attempt would only burn the rest of the enumeration timeout.
         /// </remarks>
-        private static ElementScan ScanWithFallback(IntPtr hWnd)
+        private static ElementScan ScanWithFallback(IntPtr hWnd, bool includeLegacy)
         {
             try
             {
-                return Scan(hWnd, UiaPropertySource.Cached);
+                return Scan(hWnd, UiaPropertySource.Cached, includeLegacy);
             }
             catch (Exception ex) when (UiaErrors.IsTargetFailure(ex) && !UiaErrors.IsTimeout(ex))
             {
                 Trace.TraceWarning("Cached UI Automation enumeration failed for window {0}, retrying uncached: {1}", hWnd, UiaErrors.Describe(ex));
             }
-            return Scan(hWnd, UiaPropertySource.Current);
+            return Scan(hWnd, UiaPropertySource.Current, includeLegacy);
         }
 
-        private static ElementScan Scan(IntPtr hWnd, UiaPropertySource source)
+        private static ElementScan Scan(IntPtr hWnd, UiaPropertySource source, bool includeLegacy)
         {
             var automation = UiaAutomationFactory.ForCurrentThread();
             var automationElement = automation.ElementFromHandle(hWnd);
@@ -69,7 +71,7 @@ namespace HuntAndPeck.Services
 
             // Cached: one bulk call fetches every element with the properties that decide its hint
             var elementArray = source == UiaPropertySource.Cached
-                ? automationElement.FindAllBuildCache(TreeScope.TreeScope_Descendants, condition, UiAutomationElementCache.CreateRequest(automation))
+                ? automationElement.FindAllBuildCache(TreeScope.TreeScope_Descendants, condition, UiAutomationElementCache.CreateRequest(automation, includeLegacy))
                 : automationElement.FindAll(TreeScope.TreeScope_Descendants, condition);
 
             var elements = new List<IUIAutomationElement>();

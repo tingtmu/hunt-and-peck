@@ -1,4 +1,7 @@
-﻿namespace HuntAndPeck.Services
+﻿using System.Collections.Generic;
+using UIAutomationClient;
+
+namespace HuntAndPeck.Services
 {
     /// <summary>
     /// Decides which hint an element gets from its cached capabilities. Pure; no UI Automation calls.
@@ -6,10 +9,51 @@
     internal static class UiAutomationHintKindSelector
     {
         /// <summary>
+        /// Control types that get a LegacyIAccessible default action hint: clickable items. Text, images, groups
+        /// and panes often report a default action too (inherited from a clickable parent) and would only
+        /// duplicate their parent's hint.
+        /// </summary>
+        private static readonly HashSet<int> s_legacyActionControlTypes = new HashSet<int>
+        {
+            UIA_ControlTypeIds.UIA_ButtonControlTypeId,
+            UIA_ControlTypeIds.UIA_ListItemControlTypeId,
+            UIA_ControlTypeIds.UIA_MenuItemControlTypeId,
+            UIA_ControlTypeIds.UIA_TabItemControlTypeId,
+            UIA_ControlTypeIds.UIA_SplitButtonControlTypeId,
+        };
+
+        /// <summary>True if an element of this control type may get a LegacyIAccessible default action hint</summary>
+        public static bool IsLegacyActionControlType(int controlTypeId)
+        {
+            return s_legacyActionControlTypes.Contains(controlTypeId);
+        }
+
+        /// <summary>
         /// Precedence: Invoke, Toggle, SelectionItem, ExpandCollapse, then Focus for a writable Value or
         /// writable RangeValue element; otherwise no hint.
         /// </summary>
         public static UiAutomationHintKind Select(UiAutomationCapabilities capabilities)
+        {
+            return Select(capabilities, false);
+        }
+
+        /// <summary>
+        /// As <see cref="Select(UiAutomationCapabilities)"/>, then, if <paramref name="allowLegacyDefaultAction"/>,
+        /// the LegacyIAccessible default action as a last resort (e.g. Windows 11 taskbar app buttons, which
+        /// support no action pattern)
+        /// </summary>
+        public static UiAutomationHintKind Select(UiAutomationCapabilities capabilities, bool allowLegacyDefaultAction)
+        {
+            var kind = SelectPattern(capabilities);
+            if (kind == UiAutomationHintKind.None && allowLegacyDefaultAction
+                && Has(capabilities, UiAutomationCapabilities.LegacyDefaultActionAvailable))
+            {
+                return UiAutomationHintKind.LegacyDefaultAction;
+            }
+            return kind;
+        }
+
+        private static UiAutomationHintKind SelectPattern(UiAutomationCapabilities capabilities)
         {
             if (Has(capabilities, UiAutomationCapabilities.InvokeAvailable))
             {

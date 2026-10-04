@@ -22,5 +22,10 @@ namespace HuntAndPeck.Services
 
         /// <summary>The RangeValue pattern's IsReadOnly property; only meaningful with <see cref="RangeValueAvailable"/></summary>
         RangeValueReadOnly = 1 << 7,
+
+        /// <summary>
+        /// The LegacyIAccessible pattern is available and reports a non-empty DefaultAction (e.g. "Press")
+        /// </summary>
+        LegacyDefaultActionAvailable = 1 << 8,
     }
 }

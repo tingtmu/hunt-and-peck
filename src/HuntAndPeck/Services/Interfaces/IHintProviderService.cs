@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Windows;
 using HuntAndPeck.Models;
 
 namespace HuntAndPeck.Services.Interfaces
@@ -27,6 +29,18 @@ namespace HuntAndPeck.Services.Interfaces
         /// </summary>
         /// <returns>The hint session, or null if enumeration failed or timed out (logged)</returns>
         Task<HintSession> EnumHintsAsync(IntPtr handle);
+
+        /// <summary>
+        /// Enumerate the hints of several bar windows (taskbar, status bars) for one overlay covering them all.
+        /// Elements without an action pattern but with a LegacyIAccessible default action also get hints.
+        /// </summary>
+        /// <param name="windows">The windows, first the one owning the session</param>
+        /// <param name="monitor">The monitor's bounds, physical pixels; windows are clipped to it</param>
+        /// <returns>
+        /// The session; its bounds are the union of the windows' clipped bounds and its hint bounds are relative
+        /// to it. Null if none of the windows is on the monitor any more. Windows that fail are left out (logged).
+        /// </returns>
+        Task<HintSession> EnumBarHintsAsync(IReadOnlyList<IntPtr> windows, Rect monitor);
 
         /// <summary>
         /// Invokes a hint from a session created by this service. Safe to fire and forget.

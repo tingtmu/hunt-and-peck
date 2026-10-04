@@ -26,7 +26,28 @@ namespace HuntAndPeck.Services
         public static Hint CreateHint(IntPtr owningWindow, Rect hintBounds, IUIAutomationElement automationElement, UiaPropertySource source)
         {
             var capabilities = UiAutomationElementCache.ReadCapabilities(automationElement, source);
-            switch (UiAutomationHintKindSelector.Select(capabilities))
+            return Create(UiAutomationHintKindSelector.Select(capabilities), owningWindow, hintBounds, automationElement);
+        }
+
+        /// <summary>
+        /// As <see cref="CreateHint"/>, plus a LegacyIAccessible default action hint for elements with no action
+        /// pattern; for bars mode only (taskbar app buttons), so normal windows keep their hints
+        /// </summary>
+        public static Hint CreateBarHint(IntPtr owningWindow, Rect hintBounds, IUIAutomationElement automationElement, UiaPropertySource source)
+        {
+            var capabilities = UiAutomationElementCache.ReadCapabilities(automationElement, source, true);
+            var kind = UiAutomationHintKindSelector.Select(capabilities, true);
+            if (kind == UiAutomationHintKind.LegacyDefaultAction
+                && !UiAutomationHintKindSelector.IsLegacyActionControlType(UiAutomationElementCache.ReadControlType(automationElement, source)))
+            {
+                return null;
+            }
+            return Create(kind, owningWindow, hintBounds, automationElement);
+        }
+
+        private static Hint Create(UiAutomationHintKind kind, IntPtr owningWindow, Rect hintBounds, IUIAutomationElement automationElement)
+        {
+            switch (kind)
             {
                 case UiAutomationHintKind.Invoke:
                     return new UiAutomationInvokeHint(owningWindow, automationElement, hintBounds);
@@ -38,6 +59,8 @@ namespace HuntAndPeck.Services
                     return new UiAutomationExpandCollapseHint(owningWindow, automationElement, hintBounds);
                 case UiAutomationHintKind.Focus:
                     return new UiAutomationFocusHint(owningWindow, automationElement, hintBounds);
+                case UiAutomationHintKind.LegacyDefaultAction:
+                    return new UiAutomationLegacyDefaultActionHint(owningWindow, automationElement, hintBounds);
                 default:
                     return null;
             }
