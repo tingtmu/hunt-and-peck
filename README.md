@@ -10,7 +10,7 @@ This is the 1.8 build (a fork of zsims/hunt-and-peck by Zachary Sims): https://g
 
 https://github.com/tingtmu/hunt-and-peck/releases/latest
 
-Download `HuntAndPeck-1.8.0.zip` (portable, no installer), unzip it anywhere and run `hap.exe`. To update an
+Download `HuntAndPeck-1.8.1.zip` (portable, no installer), unzip it anywhere and run `hap.exe`. To update an
 existing install, unzip over the old folder. `SHA256SUMS.txt` is there to verify the download.
 
 # Configuration
@@ -50,7 +50,8 @@ Where things live:
       overlay is open) and for edge-docked bars such as Zebar or YASB, on the monitor under the mouse. Pinned
       and running apps on the taskbar get hints too; selecting one acts like a click (switch to, minimize or
       launch the app).
-3. An overlay window will be displayed, type any of the hint characters you see.
+3. An overlay window will be displayed, type any of the hint characters you see. What you type shows in a
+   small box at the bottom of the screen, in light or dark colours following the Windows app theme.
 
 Alternatively, Hunt and Peck can be launched via the command-line or AutoHotKey by specifying `/hint`:
 ```
