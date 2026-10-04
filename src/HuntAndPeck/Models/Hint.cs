@@ -30,6 +30,12 @@ namespace HuntAndPeck.Models
         public IntPtr OwningWindow { get; private set; }
 
         /// <summary>
+        /// True if the overlay must close before the hint is invoked, e.g. because the hint clicks the screen
+        /// where the overlay is
+        /// </summary>
+        public virtual bool InvokeAfterOverlayCloses => false;
+
+        /// <summary>
         /// Invokes the hint
         /// </summary>
         public abstract void Invoke();

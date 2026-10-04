@@ -31,18 +31,24 @@ namespace HuntAndPeck.Services
 
         /// <summary>
         /// As <see cref="CreateHint"/>, plus a LegacyIAccessible default action hint for elements with no action
-        /// pattern; for bars mode only (taskbar app buttons), so normal windows keep their hints
+        /// pattern; for bars mode only (taskbar app buttons), so normal windows keep their hints. On a taskbar
+        /// such elements get a click hint instead: the Windows 11 taskbar app buttons ignore the default action.
         /// </summary>
         public static Hint CreateBarHint(IntPtr owningWindow, Rect hintBounds, IUIAutomationElement automationElement, UiaPropertySource source)
         {
             var capabilities = UiAutomationElementCache.ReadCapabilities(automationElement, source, true);
             var kind = UiAutomationHintKindSelector.Select(capabilities, true);
-            if (kind == UiAutomationHintKind.LegacyDefaultAction
-                && !UiAutomationHintKindSelector.IsLegacyActionControlType(UiAutomationElementCache.ReadControlType(automationElement, source)))
+            if (kind != UiAutomationHintKind.LegacyDefaultAction)
+            {
+                return Create(kind, owningWindow, hintBounds, automationElement);
+            }
+            if (!UiAutomationHintKindSelector.IsLegacyActionControlType(UiAutomationElementCache.ReadControlType(automationElement, source)))
             {
                 return null;
             }
-            return Create(kind, owningWindow, hintBounds, automationElement);
+            return Taskbar.IsTaskbar(owningWindow)
+                ? new UiAutomationClickHint(owningWindow, automationElement, hintBounds)
+                : Create(kind, owningWindow, hintBounds, automationElement);
         }
 
         private static Hint Create(UiAutomationHintKind kind, IntPtr owningWindow, Rect hintBounds, IUIAutomationElement automationElement)

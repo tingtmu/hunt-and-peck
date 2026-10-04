@@ -16,6 +16,14 @@ namespace HuntAndPeck.Services
     internal static class Taskbar
     {
         public const string PrimaryTaskbarClassName = "Shell_TrayWnd";
+        public const string SecondaryTaskbarClassName = "Shell_SecondaryTrayWnd";
+
+        /// <summary>True if the window is the primary taskbar or a secondary monitor's taskbar</summary>
+        public static bool IsTaskbar(IntPtr hWnd)
+        {
+            var className = WindowEnumeration.GetClassName(hWnd);
+            return className == PrimaryTaskbarClassName || className == SecondaryTaskbarClassName;
+        }
 
         /// <summary>
         /// Finds the primary taskbar window

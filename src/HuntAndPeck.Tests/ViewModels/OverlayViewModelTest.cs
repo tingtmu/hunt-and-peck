@@ -51,6 +51,51 @@ namespace HuntAndPeck.Tests.ViewModels
             Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref closes) == 1, TimeSpan.FromSeconds(5)));
         }
 
+        [Fact]
+        public async Task Match_InvokeAfterOverlayCloses_ClosesBeforeInvokingOnce()
+        {
+            var events = new List<string>();
+            var invocation = new TaskCompletionSource<bool>();
+            var session = new HintSession { Hints = new List<Hint> { new InvokeAfterCloseFakeHint() } };
+            var vm = new OverlayViewModel(session, new HintLabelService(), hint =>
+            {
+                events.Add("invoke");
+                return invocation.Task;
+            });
+            Task pendingAtClose = null;
+            vm.CloseOverlay = () =>
+            {
+                events.Add("close");
+                pendingAtClose = vm.PendingInvocation;
+            };
+            var label = vm.Hints[0].Label;
+
+            vm.MatchString = label;
+            vm.MatchString = label;
+
+            Assert.Equal(new List<string> { "close", "invoke" }, events);
+
+            // Headless mode reads PendingInvocation while the overlay closes: it must already track the invocation
+            Assert.Same(pendingAtClose, vm.PendingInvocation);
+            Assert.False(pendingAtClose.IsCompleted);
+            invocation.SetResult(true);
+            Assert.Same(pendingAtClose, await Task.WhenAny(pendingAtClose, Task.Delay(TimeSpan.FromSeconds(5))));
+        }
+
+        private sealed class InvokeAfterCloseFakeHint : Hint
+        {
+            public InvokeAfterCloseFakeHint()
+                : base(IntPtr.Zero, new Rect(0, 0, 10, 10))
+            {
+            }
+
+            public override bool InvokeAfterOverlayCloses => true;
+
+            public override void Invoke()
+            {
+            }
+        }
+
         private sealed class FakeHint : Hint
         {
             public FakeHint()
