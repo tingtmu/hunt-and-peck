@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Generates Interop.UIAutomationClient.dll from the registered UIAutomationClient type library
+  ({944DE083-8FB8-45CF-BCB7-C477ACB2F897} v1.0) without needing the .NET Framework SDK.
+
+  Why not <COMReference>? MSBuild's ResolveComReference task unconditionally requires AxImp.exe
+  (shipped only with the .NET Framework SDK / Visual Studio) even when converting in-process.
+  This target performs the same in-process conversion that ResolveComReference does
+  (TypeLibConverter, flags SafeArrayAsSystemArray | TransformDispRetVals | ImportAsAgnostic,
+  namespace = typelib name), so the produced assembly is equivalent to tlbimp output:
+  "Interop.UIAutomationClient, Version=1.0.0.0", namespace UIAutomationClient.
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <UIAutomationInteropPath>$(IntermediateOutputPath)Interop.UIAutomationClient.dll</UIAutomationInteropPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Interop.UIAutomationClient">
+      <HintPath>$(UIAutomationInteropPath)</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+
+  <UsingTask TaskName="ImportRegisteredTypeLib"
+             TaskFactory="CodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <TypeLibGuid ParameterType="System.String" Required="true" />
+      <VersionMajor ParameterType="System.Int32" Required="true" />
+      <VersionMinor ParameterType="System.Int32" Required="true" />
+      <OutputFile ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Class" Language="cs"><![CDATA[
+using System;
+using System.IO;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
+
+public class ImportRegisteredTypeLib : Task, ITypeLibImporterNotifySink
+{
+    [Required] public string TypeLibGuid { get; set; }
+    [Required] public int VersionMajor { get; set; }
+    [Required] public int VersionMinor { get; set; }
+    [Required] public string OutputFile { get; set; }
+
+    [DllImport("oleaut32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
+    private static extern void LoadRegTypeLib(ref Guid guid, short major, short minor, int lcid,
+        [MarshalAs(UnmanagedType.Interface)] out object typeLib);
+
+    private const int TYPE_E_LIBNOTREGISTERED = unchecked((int)0x8002801D);
+
+    public override bool Execute()
+    {
+        try
+        {
+            var guid = new Guid(TypeLibGuid);
+            object typeLib;
+            LoadRegTypeLib(ref guid, (short)VersionMajor, (short)VersionMinor, 0, out typeLib);
+
+            var typeLibName = Marshal.GetTypeLibName((System.Runtime.InteropServices.ComTypes.ITypeLib)typeLib);
+            var fullPath = Path.GetFullPath(OutputFile);
+            var directory = Path.GetDirectoryName(fullPath);
+            Directory.CreateDirectory(directory);
+
+            var flags = TypeLibImporterFlags.SafeArrayAsSystemArray
+                      | TypeLibImporterFlags.TransformDispRetVals
+                      | TypeLibImporterFlags.ImportAsAgnostic;
+
+            var converter = new TypeLibConverter();
+            var builder = converter.ConvertTypeLibToAssembly(
+                typeLib, fullPath, flags, this, null, null, typeLibName, null);
+
+            // AssemblyBuilder.Save writes relative to the directory given at definition time.
+            builder.Save(Path.GetFileName(fullPath));
+            Log.LogMessage(MessageImportance.Normal, "Generated COM interop assembly {0}", fullPath);
+            return !Log.HasLoggedErrors;
+        }
+        catch (COMException ex)
+        {
+            if (ex.ErrorCode == TYPE_E_LIBNOTREGISTERED)
+            {
+                Log.LogError("UIAutomationClient type library v1.0 is not registered (normally provided by %WINDIR%\\System32\\UIAutomationCore.dll).");
+            }
+            else
+            {
+                Log.LogError("Failed to import type library {0} v{1}.{2}: {3}",
+                    TypeLibGuid, VersionMajor, VersionMinor, ex.Message);
+            }
+            Log.LogMessage(MessageImportance.Low, ex.ToString());
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Log.LogError("Failed to import type library {0} v{1}.{2}: {3}",
+                TypeLibGuid, VersionMajor, VersionMinor, ex);
+            return false;
+        }
+    }
+
+    public void ReportEvent(ImporterEventKind eventKind, int eventCode, string eventMsg)
+    {
+        // Conversion warnings (e.g. non-marshalable native array args) are expected for UIA
+        // and are also suppressed by tlbimp/ResolveComReference; keep them at low importance.
+        Log.LogMessage(MessageImportance.Low, "{0}: {1}", eventKind, eventMsg);
+    }
+
+    public Assembly ResolveRef(object typeLib)
+    {
+        var name = Marshal.GetTypeLibName((System.Runtime.InteropServices.ComTypes.ITypeLib)typeLib);
+        Log.LogError("Type library references unsupported dependent type library '{0}'.", name);
+        return null;
+    }
+}
+]]></Code>
+    </Task>
+  </UsingTask>
+
+  <!-- Inputs intentionally tracks only this file: the OS typelib is not a stable build input; delete obj to regenerate. -->
+  <Target Name="GenerateUIAutomationInterop"
+          BeforeTargets="ResolveAssemblyReferences"
+          Inputs="$(MSBuildThisFileFullPath)"
+          Outputs="$(UIAutomationInteropPath)">
+    <ImportRegisteredTypeLib TypeLibGuid="944DE083-8FB8-45CF-BCB7-C477ACB2F897"
+                             VersionMajor="1"
+                             VersionMinor="0"
+                             OutputFile="$(UIAutomationInteropPath)" />
+    <ItemGroup>
+      <FileWrites Include="$(UIAutomationInteropPath)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

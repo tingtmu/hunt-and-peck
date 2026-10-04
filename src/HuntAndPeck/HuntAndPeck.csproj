@@ -9,12 +9,11 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>HuntAndPeck</RootNamespace>
     <AssemblyName>hap</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
-    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
-    <RestorePackages>true</RestorePackages>
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -54,9 +53,6 @@
   <PropertyGroup />
   <PropertyGroup />
   <ItemGroup>
-    <Reference Include="Hardcodet.Wpf.TaskbarNotification">
-      <HintPath>..\packages\Hardcodet.NotifyIcon.Wpf.1.0.5\lib\net45\Hardcodet.Wpf.TaskbarNotification.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
@@ -146,7 +142,6 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -178,15 +173,22 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.0.5" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\NativeMethods\NativeMethods.csproj">
       <Project>{556f1a03-8752-4c41-bb29-e7fa7ff68cd9}</Project>
       <Name>NativeMethods</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <BootstrapperPackage Include=".NETFramework,Version=v4.5.1">
+    <BootstrapperPackage Include=".NETFramework,Version=v4.8.1">
       <Visible>False</Visible>
-      <ProductName>Microsoft .NET Framework 4.5.1 %28x86 and x64%29</ProductName>
+      <ProductName>Microsoft .NET Framework 4.8.1 %28x86 and x64%29</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
@@ -200,36 +202,23 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
-  <ItemGroup>
-    <COMReference Include="UIA">
-      <Guid>{930299CE-9965-4DEC-B0F4-A54848D4B667}</Guid>
-      <VersionMajor>1</VersionMajor>
-      <VersionMinor>0</VersionMinor>
-      <Lcid>0</Lcid>
-      <WrapperTool>tlbimp</WrapperTool>
-      <Isolated>False</Isolated>
-      <EmbedInteropTypes>True</EmbedInteropTypes>
-    </COMReference>
-    <COMReference Include="UIAutomationClient">
-      <Guid>{944DE083-8FB8-45CF-BCB7-C477ACB2F897}</Guid>
-      <VersionMajor>1</VersionMajor>
-      <VersionMinor>0</VersionMinor>
-      <Lcid>0</Lcid>
-      <WrapperTool>tlbimp</WrapperTool>
-      <Isolated>False</Isolated>
-      <EmbedInteropTypes>False</EmbedInteropTypes>
-    </COMReference>
-    <COMReference Include="UIAutomationCrossBitnessHookLib">
-      <Guid>{8ACC2016-04A3-4343-B8E1-1870E35D6A41}</Guid>
-      <VersionMajor>1</VersionMajor>
-      <VersionMinor>0</VersionMinor>
-      <Lcid>0</Lcid>
-      <WrapperTool>tlbimp</WrapperTool>
-      <Isolated>False</Isolated>
-      <EmbedInteropTypes>True</EmbedInteropTypes>
-    </COMReference>
-  </ItemGroup>
+  <!--
+    UIAutomationClient COM interop (Interop.UIAutomationClient.dll) is generated in-process by
+    UIAutomationInterop.targets instead of <COMReference>, because ResolveComReference requires
+    AxImp.exe from the .NET Framework SDK. The former embedded-only COMReferences "UIA"
+    (UIAutomationCore) and "UIAutomationCrossBitnessHookLib" were unused and produced no output.
+  -->
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="UIAutomationInterop.targets" />
+  <!--
+    WPF markup compilation (.NET Framework WinFX targets) builds a temporary *_wpftmp.csproj whose file
+    name differs, so Microsoft.Common.targets does not import this project's NuGet-generated props/targets.
+    Import them explicitly so Microsoft.NETFramework.ReferenceAssemblies also applies to the temp project.
+  -->
+  <ImportGroup Condition="$(MSBuildProjectName.EndsWith('_wpftmp'))">
+    <Import Project="$(MSBuildProjectExtensionsPath)HuntAndPeck.csproj.nuget.g.props" Condition="Exists('$(MSBuildProjectExtensionsPath)HuntAndPeck.csproj.nuget.g.props')" />
+    <Import Project="$(MSBuildProjectExtensionsPath)HuntAndPeck.csproj.nuget.g.targets" Condition="Exists('$(MSBuildProjectExtensionsPath)HuntAndPeck.csproj.nuget.g.targets')" />
+  </ImportGroup>
   <PropertyGroup>
     <PreBuildEvent>
     </PreBuildEvent>
