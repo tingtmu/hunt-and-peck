@@ -7,7 +7,7 @@ using HuntAndPeck.Services.Interfaces;
 
 namespace HuntAndPeck.ViewModels
 {
-    internal class OverlayViewModel : NotifyPropertyChanged
+    internal class OverlayViewModel : NotifyPropertyChanged, IOverlayBounds
     {
         private Rect _bounds;
         private ObservableCollection<HintViewModel> _hints = new ObservableCollection<HintViewModel>();
@@ -31,7 +31,7 @@ namespace HuntAndPeck.ViewModels
         }
 
         /// <summary>
-        /// Bounds in logical screen coordiantes
+        /// Bounds in physical screen pixels
         /// </summary>
         public Rect Bounds
         {

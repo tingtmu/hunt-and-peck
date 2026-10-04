@@ -29,6 +29,7 @@
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -81,6 +82,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Extensions\DpiHelper.cs" />
     <Compile Include="Extensions\IEnumerableTExtensions.cs" />
     <Compile Include="Extensions\RectExtensions.cs" />
     <Compile Include="Models\DebugHint.cs" />
@@ -101,10 +103,12 @@
     </Compile>
     <Compile Include="Services\UiAutomationPatternIds.cs" />
     <Compile Include="Services\UiAutomationHintProviderService.cs" />
+    <Compile Include="Services\Taskbar.cs" />
     <Compile Include="SingleLaunchMutex.cs" />
     <Compile Include="ViewModels\DebugHintViewModel.cs" />
     <Compile Include="ViewModels\DebugOverlayViewModel.cs" />
     <Compile Include="ViewModels\DelegateCommand.cs" />
+    <Compile Include="ViewModels\IOverlayBounds.cs" />
     <Compile Include="ViewModels\HintViewModel.cs" />
     <Compile Include="ViewModels\NotifyPropertyChanged.cs" />
     <Compile Include="ViewModels\OptionsViewModel.cs" />
@@ -114,6 +118,7 @@
       <DependentUpon>DebugOverlayView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\ForegroundWindow.cs" />
+    <Compile Include="Views\PhysicalOverlayWindow.cs" />
     <Compile Include="Views\OptionsView.xaml.cs">
       <DependentUpon>OptionsView.xaml</DependentUpon>
     </Compile>
@@ -150,6 +155,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="app.manifest" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\originalbird.ico" />

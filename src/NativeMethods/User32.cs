@@ -11,12 +11,22 @@ namespace HuntAndPeck.NativeMethods
         [DllImport("user32.dll")]
         public static extern IntPtr GetDesktopWindow();
 
-        [DllImport("user32.dll")]
-        public static extern IntPtr GetWindowRect(IntPtr hWnd, ref RECT rect);
-
-        [DllImport("user32.dll")]
+        /// <summary>
+        /// Gets the window bounds in screen coordinates. For a per-monitor DPI aware caller these are physical pixels.
+        /// </summary>
+        [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool PhysicalToLogicalPoint(IntPtr hWnd, out POINT lpPoint);
+        public static extern bool GetWindowRect(IntPtr hWnd, ref RECT rect);
+
+        /// <summary>
+        /// Gets the DPI of the window (Windows 10 1607+). Returns 0 for an invalid window handle.
+        /// </summary>
+        [DllImport("user32.dll")]
+        public static extern uint GetDpiForWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
 
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]

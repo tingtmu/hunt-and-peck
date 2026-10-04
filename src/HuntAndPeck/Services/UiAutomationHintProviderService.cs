@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows;
 using UIAutomationClient;
 
@@ -59,30 +60,51 @@ namespace HuntAndPeck.Services
         /// <returns>A hint session</returns>
         private HintSession EnumWindowHints(IntPtr hWnd, Func<IntPtr, Rect, IUIAutomationElement, Hint> hintFactory)
         {
-            var result = new List<Hint>();
-            var elements = EnumElements(hWnd);
+            if (hWnd == IntPtr.Zero)
+            {
+                return null;
+            }
 
-            // Window bounds
+            // Window bounds, in physical pixels (the process is per-monitor DPI aware)
             var rawWindowBounds = new RECT();
-            User32.GetWindowRect(hWnd, ref rawWindowBounds);
+            if (!User32.GetWindowRect(hWnd, ref rawWindowBounds))
+            {
+                Trace.TraceWarning("GetWindowRect failed for window {0}, error {1}", hWnd, Marshal.GetLastWin32Error());
+                return null;
+            }
             Rect windowBounds = rawWindowBounds;
 
+            List<IUIAutomationElement> elements;
+            try
+            {
+                elements = EnumElements(hWnd);
+            }
+            catch (COMException ex)
+            {
+                // The window may have been closed between finding it and enumerating it
+                Trace.TraceWarning("UI Automation enumeration failed for window {0}: {1}", hWnd, ex);
+                return null;
+            }
+
+            var result = new List<Hint>();
             foreach (var element in elements)
             {
                 var boundingRectObject = element.CurrentBoundingRectangle;
                 if ((boundingRectObject.right > boundingRectObject.left) && (boundingRectObject.bottom > boundingRectObject.top))
                 {
+                    // UIA bounding rectangles are physical screen pixels, same unit as the window bounds
                     var niceRect = new Rect(new Point(boundingRectObject.left, boundingRectObject.top), new Point(boundingRectObject.right, boundingRectObject.bottom));
-                    // Convert the bounding rect to logical coords
-                    var logicalRect = niceRect.PhysicalToLogicalRect(hWnd);
-                    if (!logicalRect.IsEmpty)
+                    if (!niceRect.OverlapsWith(windowBounds))
                     {
-                        var windowCoords = niceRect.ScreenToWindowCoordinates(windowBounds);
-                        var hint = hintFactory(hWnd, windowCoords, element);
-                        if (hint != null)
-                        {
-                            result.Add(hint);
-                        }
+                        // Outside the overlay, so its hint could never be seen
+                        continue;
+                    }
+
+                    var windowCoords = niceRect.ScreenToWindowCoordinates(windowBounds);
+                    var hint = hintFactory(hWnd, windowCoords, element);
+                    if (hint != null)
+                    {
+                        result.Add(hint);
                     }
                 }
             }

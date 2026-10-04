@@ -1,15 +1,14 @@
-﻿<local:ForegroundWindow
+﻿<local:PhysicalOverlayWindow
     x:Class="HuntAndPeck.Views.DebugOverlayView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:HuntAndPeck.Views"
     WindowStyle="None"
     ResizeMode="NoResize"
-    AllowsTransparency="True"
-    Loaded="DebugOverlayView_OnLoaded">
-    <local:ForegroundWindow.Background>
+    AllowsTransparency="True">
+    <local:PhysicalOverlayWindow.Background>
         <SolidColorBrush Color="Transparent" />
-    </local:ForegroundWindow.Background>
+    </local:PhysicalOverlayWindow.Background>
     <Grid x:Name="layoutGrid">
         <ItemsControl ItemsSource="{Binding Hints}">
             <ItemsControl.ItemsPanel>
@@ -45,4 +44,4 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
         </Grid>
-</local:ForegroundWindow>
+</local:PhysicalOverlayWindow>

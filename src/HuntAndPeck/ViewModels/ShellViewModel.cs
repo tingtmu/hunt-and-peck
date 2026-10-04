@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
 using HuntAndPeck.NativeMethods;
+using HuntAndPeck.Services;
 using HuntAndPeck.Services.Interfaces;
 using Application = System.Windows.Application;
 
@@ -75,7 +76,12 @@ namespace HuntAndPeck.ViewModels
 
         private void _keyListener_OnTaskbarHotKeyActivated(object sender, EventArgs e)
         {
-            var taskbarHWnd = User32.FindWindow("Shell_traywnd", "");
+            var taskbarHWnd = Taskbar.FindPrimaryTaskbar();
+            if (taskbarHWnd == IntPtr.Zero)
+            {
+                return;
+            }
+
             var session = _hintProviderService.EnumHints(taskbarHWnd);
             if (session != null)
             {

@@ -3,7 +3,7 @@ using HuntAndPeck.ViewModels;
 using System.Linq;
 using HuntAndPeck.Services;
 using HuntAndPeck.Views;
-using HuntAndPeck.NativeMethods;
+using HuntAndPeck.Models;
 
 namespace HuntAndPeck
 {
@@ -45,28 +45,43 @@ namespace HuntAndPeck
             view.ShowDialog();
         }
 
+        /// <summary>
+        /// Shows the overlay for a headless (/hint, /tray) invocation, or shuts down if there is nothing to show
+        /// </summary>
+        /// <returns>True if the overlay was shown</returns>
+        private bool ShowHeadlessOverlay(HintSession session)
+        {
+            if (session == null)
+            {
+                Current.Shutdown();
+                return false;
+            }
+
+            var overlayWindow = new OverlayView()
+            {
+                DataContext = new OverlayViewModel(session, _hintLabelService)
+            };
+            overlayWindow.Show();
+            return true;
+        }
+
         protected override void OnStartup(StartupEventArgs e)
         {
             if (e.Args.Contains("/hint"))
             {
                 // support headless mode
-                var session = _hintProviderService.EnumHints();
-                var overlayWindow = new OverlayView()
+                if (!ShowHeadlessOverlay(_hintProviderService.EnumHints()))
                 {
-                    DataContext = new OverlayViewModel(session, _hintLabelService)
-                };
-                overlayWindow.Show();
+                    return;
+                }
             }
             else if (e.Args.Contains("/tray"))
             {
                 // support headless tray mode
-                var taskbarHWnd = User32.FindWindow("Shell_traywnd", "");
-                var session = _hintProviderService.EnumHints(taskbarHWnd);
-                var overlayWindow = new OverlayView()
+                if (!ShowHeadlessOverlay(_hintProviderService.EnumHints(Taskbar.FindPrimaryTaskbar())))
                 {
-                    DataContext = new OverlayViewModel(session, _hintLabelService)
-                };
-                overlayWindow.Show();
+                    return;
+                }
             }
             else
             {

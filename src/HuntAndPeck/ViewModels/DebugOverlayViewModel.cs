@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace HuntAndPeck.ViewModels
 {
-    public class DebugOverlayViewModel : NotifyPropertyChanged
+    public class DebugOverlayViewModel : NotifyPropertyChanged, IOverlayBounds
     {
         private Rect _bounds;
 
@@ -18,7 +18,7 @@ namespace HuntAndPeck.ViewModels
         public List<DebugHintViewModel> Hints { get; set; }
 
         /// <summary>
-        /// Bounds in logical screen coordiantes
+        /// Bounds in physical screen pixels
         /// </summary>
         public Rect Bounds
         {

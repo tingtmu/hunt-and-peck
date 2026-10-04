@@ -17,7 +17,7 @@ namespace HuntAndPeck.Models
         public IntPtr OwningWindow { get; set; }
 
         /// <summary>
-        /// Bounds of the owning window in logical screen coordinates
+        /// Bounds of the owning window in physical screen pixels
         /// </summary>
         public Rect OwningWindowBounds { get; set; }
     }

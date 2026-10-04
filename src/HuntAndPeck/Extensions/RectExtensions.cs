@@ -1,34 +1,31 @@
-﻿using System;
-using System.Windows;
-using HuntAndPeck.NativeMethods;
+﻿using System.Windows;
 
 namespace HuntAndPeck.Extensions
 {
     public static class RectExtensions
     {
         /// <summary>
-        /// Converts physical screen to logical screen coordinates given a rectangle
+        /// Determines whether two rectangles overlap by a non-zero area (touching edges do not count)
         /// </summary>
-        /// <param name="source">The source rectangle</param>
-        /// <param name="hWnd">The window handle to use for conversion</param>
-        /// <returns>The rectangle in logical coordinates, else an empty rectangle</returns>
-        public static Rect PhysicalToLogicalRect(this Rect source, IntPtr hWnd)
+        /// <param name="source">The source rectangle, e.g. an element's bounds</param>
+        /// <param name="other">The other rectangle, e.g. the owning window's bounds</param>
+        /// <returns>True if the rectangles share a non-empty area</returns>
+        public static bool OverlapsWith(this Rect source, Rect other)
         {
-            POINT tl = source.TopLeft;
-            POINT br = source.BottomRight;
-            if (User32.PhysicalToLogicalPoint(hWnd, out tl) &&
-                User32.PhysicalToLogicalPoint(hWnd, out br))
+            if (source.IsEmpty || other.IsEmpty)
             {
-                return new Rect(tl, br);
+                return false;
             }
 
-            return Rect.Empty;
+            return source.Left < other.Right && source.Right > other.Left &&
+                   source.Top < other.Bottom && source.Bottom > other.Top;
         }
 
         /// <summary>
-        /// Converts logical screen coordinates to window coordinates for a given window
+        /// Converts screen coordinates to window coordinates for a given window.
+        /// Both rectangles must use the same unit (physical pixels under per-monitor DPI awareness).
         /// </summary>
-        /// <param name="source">The logical screen coordinates</param>
+        /// <param name="source">The screen coordinates</param>
         /// <param name="windowRect">The bounds of the window in which the source rect lies</param>
         /// <returns></returns>
         public static Rect ScreenToWindowCoordinates(this Rect source, Rect windowRect)
