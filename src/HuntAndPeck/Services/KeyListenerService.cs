@@ -1,20 +1,26 @@
 ﻿using HuntAndPeck.NativeMethods;
 using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using HuntAndPeck.Services.Interfaces;
 
 namespace HuntAndPeck.Services
 {
-    internal class KeyListenerService : Form, IKeyListenerService, IDisposable
+    internal class KeyListenerService : Form, IKeyListenerService
     {
+        /// <summary>ERROR_HOTKEY_ALREADY_REGISTERED: another app owns the key combination</summary>
+        public const int ErrorHotKeyAlreadyRegistered = 1409;
+
         public event EventHandler OnHotKeyActivated;
         public event EventHandler OnTaskbarHotKeyActivated;
         public event EventHandler OnDebugHotKeyActivated;
 
         /// <summary>
-        /// Global counter for assigning ids to identiy the hot key registration
+        /// Counter for assigning ids to identify the hot key registrations. Starts at 1 so that 0 can mean
+        /// "never registered".
         /// </summary>
-        private int _hotkeyIdCounter = 0;
+        private int _hotkeyIdCounter = 1;
 
         private HotKey _hotKey;
         private HotKey _taskbarHotKey;
@@ -23,16 +29,27 @@ namespace HuntAndPeck.Services
         /// <summary>
         /// Re-registers the current hotkey, unregistering any previous key
         /// </summary>
-        private void ReRegisterHotKey(HotKey hotKey)
+        /// <returns>True if the hotkey was registered</returns>
+        private bool ReRegisterHotKey(HotKey hotKey)
         {
             // Already registered, have to unregister first
-            if (hotKey.RegistrationId > 0)
+            if (hotKey.IsRegistered && !User32.UnregisterHotKey(Handle, hotKey.RegistrationId))
             {
-                User32.UnregisterHotKey(Handle, hotKey.RegistrationId);
+                Trace.TraceWarning("UnregisterHotKey {0} (id {1}) failed, error {2}", hotKey, hotKey.RegistrationId, Marshal.GetLastWin32Error());
             }
 
             hotKey.RegistrationId = _hotkeyIdCounter++;
-            User32.RegisterHotKey(Handle, hotKey.RegistrationId, (uint)hotKey.Modifier, (uint)hotKey.Keys);
+            hotKey.IsRegistered = User32.RegisterHotKey(Handle, hotKey.RegistrationId, (uint)hotKey.Modifier, (uint)hotKey.Keys);
+            if (hotKey.IsRegistered)
+            {
+                Trace.TraceInformation("Registered hotkey {0}", hotKey);
+                return true;
+            }
+
+            var error = Marshal.GetLastWin32Error();
+            var reason = error == ErrorHotKeyAlreadyRegistered ? "already registered by another app" : "failed";
+            Trace.TraceWarning("RegisterHotKey {0} {1}, error {2}", hotKey, reason, error);
+            return false;
         }
 
         /// <summary>
@@ -88,31 +105,19 @@ namespace HuntAndPeck.Services
             {
                 var e = new HotKeyEventArgs(m.LParam);
 
-                // Normal hotkey
-                if (_hotKey != null &&
-                    e.Key == _hotKey.Keys &&
-                    e.Modifiers == _hotKey.Modifier &&
-                    OnHotKeyActivated != null)
+                if (Matches(_hotKey, e))
                 {
-                    OnHotKeyActivated(this, new EventArgs());
+                    OnHotKeyActivated?.Invoke(this, EventArgs.Empty);
                 }
 
-                // Task bar hotkey
-                if (_taskbarHotKey != null &&
-                    e.Key == _taskbarHotKey.Keys &&
-                    e.Modifiers == _taskbarHotKey.Modifier &&
-                    OnHotKeyActivated != null)
+                if (Matches(_taskbarHotKey, e))
                 {
-                    OnTaskbarHotKeyActivated(this, new EventArgs());
+                    OnTaskbarHotKeyActivated?.Invoke(this, EventArgs.Empty);
                 }
 
-                // Debug hotkey
-                if (_debugHotKey != null &&
-                    e.Key == _debugHotKey.Keys &&
-                    e.Modifiers == _debugHotKey.Modifier &&
-                    OnDebugHotKeyActivated != null)
+                if (Matches(_debugHotKey, e))
                 {
-                    OnDebugHotKeyActivated(this, new EventArgs());
+                    OnDebugHotKeyActivated?.Invoke(this, EventArgs.Empty);
                 }
             }
 
@@ -123,6 +128,36 @@ namespace HuntAndPeck.Services
         {
             // Ensures that the window will never be displayed
             base.SetVisibleCore(false);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && IsHandleCreated)
+            {
+                Unregister(_hotKey);
+                Unregister(_taskbarHotKey);
+                Unregister(_debugHotKey);
+            }
+            base.Dispose(disposing);
+        }
+
+        private static bool Matches(HotKey hotKey, HotKeyEventArgs e)
+        {
+            return hotKey != null && e.Key == hotKey.Keys && e.Modifiers == hotKey.Modifier;
+        }
+
+        private void Unregister(HotKey hotKey)
+        {
+            if (hotKey == null || !hotKey.IsRegistered)
+            {
+                return;
+            }
+
+            if (!User32.UnregisterHotKey(Handle, hotKey.RegistrationId))
+            {
+                Trace.TraceWarning("UnregisterHotKey {0} failed on exit, error {1}", hotKey, Marshal.GetLastWin32Error());
+            }
+            hotKey.IsRegistered = false;
         }
     }
 }

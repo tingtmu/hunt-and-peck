@@ -1,5 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -70,7 +72,8 @@ namespace HuntAndPeck.Views
 
                 if (!attached)
                 {
-                    // hmm
+                    // Can't take the foreground (e.g. the foreground app is elevated or hung)
+                    Trace.TraceWarning("AttachThreadInput to thread {0} failed, error {1}; closing overlay", targetThread, Marshal.GetLastWin32Error());
                     Close();
                     return;
                 }
@@ -78,15 +81,18 @@ namespace HuntAndPeck.Views
                 var ourHandle = new WindowInteropHelper(this).Handle;
 
                 // force us to the forground
-                User32.BringWindowToTop(ourHandle);
+                if (!User32.BringWindowToTop(ourHandle))
+                {
+                    Trace.TraceWarning("BringWindowToTop failed, error {0}", Marshal.GetLastWin32Error());
+                }
                 User32.SetFocus(ourHandle);
             }
             finally
             {
-                if (attached)
+                // Always detach, or the two threads' input stays linked (shared focus/key state)
+                if (attached && !User32.AttachThreadInput(targetThread, appThread, false))
                 {
-                    // unattach
-                    User32.AttachThreadInput(targetThread, appThread, false);
+                    Trace.TraceWarning("Detaching thread input from thread {0} failed, error {1}", targetThread, Marshal.GetLastWin32Error());
                 }
             }
         }

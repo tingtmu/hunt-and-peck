@@ -4,8 +4,10 @@
         xmlns:tb="http://www.hardcodet.net/taskbar"
         Title="hap" Height="50" Width="50"
         Visibility="Hidden">
-    <tb:TaskbarIcon Visibility="Visible"
+    <tb:TaskbarIcon x:Name="TrayIcon"
+                    Visibility="Visible"
                     IconSource="/Resources/originalbird.ico"
+                    ToolTipText="{Binding ToolTipText}"
                     MenuActivation="LeftOrRightClick">
         <tb:TaskbarIcon.ContextMenu>
             <ContextMenu>

@@ -1,9 +1,13 @@
-﻿using System.Windows;
-using HuntAndPeck.ViewModels;
+﻿using System;
+using System.Diagnostics;
 using System.Linq;
-using HuntAndPeck.Services;
-using HuntAndPeck.Views;
+using System.Threading.Tasks;
+using System.Windows;
+using HuntAndPeck.Diagnostics;
 using HuntAndPeck.Models;
+using HuntAndPeck.Services;
+using HuntAndPeck.ViewModels;
+using HuntAndPeck.Views;
 
 namespace HuntAndPeck
 {
@@ -12,19 +16,45 @@ namespace HuntAndPeck
     /// </summary>
     public partial class App : Application
     {
-        private readonly SingleLaunchMutex _singleLaunchMutex = new SingleLaunchMutex();
-        private readonly UiAutomationHintProviderService _hintProviderService = new UiAutomationHintProviderService();
-        private readonly HintLabelService _hintLabelService = new HintLabelService();
-        private KeyListenerService _keyListenerService;
+        /// <summary>
+        /// How long a headless instance waits for the selected hint's invocation before exiting
+        /// (exiting kills the background UIA worker thread and with it the invocation)
+        /// </summary>
+        private static readonly TimeSpan HeadlessInvocationWait =
+            UiAutomationHintProviderService.InvocationTimeout + TimeSpan.FromSeconds(1);
 
-        private void ShowOverlay(OverlayViewModel vm)
+        private readonly HintLabelService _hintLabelService = new HintLabelService();
+        private UiAutomationHintProviderService _hintProviderService;
+        private SingleLaunchMutex _singleLaunchMutex;
+        private KeyListenerService _keyListenerService;
+        private TrayNotifier _trayNotifier;
+        private GlobalExceptionHandlers _exceptionHandlers;
+
+        /// <summary>
+        /// Creates the overlay window; the view model may close it at any time, also after it already closed
+        /// itself (e.g. on deactivation)
+        /// </summary>
+        private static OverlayView CreateOverlayView(OverlayViewModel vm)
         {
             var view = new OverlayView
             {
                 DataContext = vm
             };
-            vm.CloseOverlay = () => view.Close();
-            view.ShowDialog();
+            var closed = false;
+            view.Closed += (sender, args) => closed = true;
+            vm.CloseOverlay = () =>
+            {
+                if (!closed)
+                {
+                    view.Close();
+                }
+            };
+            return view;
+        }
+
+        private void ShowOverlay(OverlayViewModel vm)
+        {
+            CreateOverlayView(vm).ShowDialog();
         }
 
         private void ShowDebugOverlay(DebugOverlayViewModel vm)
@@ -46,71 +76,114 @@ namespace HuntAndPeck
         }
 
         /// <summary>
-        /// Shows the overlay for a headless (/hint, /tray) invocation, or shuts down if there is nothing to show
+        /// Shows the overlay for a headless (/hint, /tray) invocation, then shuts down once it closes and the
+        /// selected hint has been invoked; shuts down straight away if there is nothing to show
         /// </summary>
-        /// <returns>True if the overlay was shown</returns>
-        private bool ShowHeadlessOverlay(HintSession session)
+        private async void RunHeadless(Func<Task<HintSession>> enumerate)
         {
-            if (session == null)
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            try
             {
-                Current.Shutdown();
+                var session = await enumerate();
+                if (session == null)
+                {
+                    Shutdown();
+                    return;
+                }
+
+                var vm = new OverlayViewModel(session, _hintLabelService, _hintProviderService.InvokeHintAsync);
+                var view = CreateOverlayView(vm);
+                view.Closed += async (sender, args) =>
+                {
+                    await Task.WhenAny(vm.PendingInvocation, Task.Delay(HeadlessInvocationWait));
+                    Shutdown();
+                };
+                view.Show();
+            }
+            catch (Exception ex)
+            {
+                _exceptionHandlers.Report("Headless hint session failed", ex);
+                Shutdown();
+            }
+        }
+
+        /// <summary>
+        /// Starts the normal tray mode
+        /// </summary>
+        /// <returns>False if another instance is already running</returns>
+        private bool StartTray()
+        {
+            // Prevent multiple startup in non-headless mode
+            _singleLaunchMutex = new SingleLaunchMutex();
+            if (_singleLaunchMutex.AlreadyRunning)
+            {
+                Trace.TraceInformation("Another instance is already running; exiting");
+                Shutdown();
                 return false;
             }
 
-            var overlayWindow = new OverlayView()
+            // Create this as late as possible as it has a window
+            _keyListenerService = new KeyListenerService();
+
+            var shellViewModel = new ShellViewModel(
+                ShowOverlay,
+                ShowDebugOverlay,
+                ShowOptions,
+                _exceptionHandlers.Report,
+                _hintLabelService,
+                _hintProviderService,
+                _hintProviderService,
+                _keyListenerService);
+
+            var shellView = new ShellView
             {
-                DataContext = new OverlayViewModel(session, _hintLabelService)
+                DataContext = shellViewModel
             };
-            overlayWindow.Show();
+            shellView.Show();
+
+            _trayNotifier.Attach(shellView.TrayIcon);
+            if (shellViewModel.HotKeyWarning != null)
+            {
+                _trayNotifier.ShowWarning(shellViewModel.HotKeyWarning);
+            }
             return true;
         }
 
         protected override void OnStartup(StartupEventArgs e)
         {
-            if (e.Args.Contains("/hint"))
+            var isHint = e.Args.Contains("/hint");
+            var isTray = e.Args.Contains("/tray");
+            AppLog.Initialize(isHint ? "/hint" : isTray ? "/tray" : "tray icon");
+
+            _trayNotifier = new TrayNotifier(Dispatcher);
+            _exceptionHandlers = new GlobalExceptionHandlers(this, _trayNotifier, isHint || isTray);
+            _exceptionHandlers.Register();
+            _hintProviderService = new UiAutomationHintProviderService(_trayNotifier.ShowWarning);
+
+            if (isHint)
             {
                 // support headless mode
-                if (!ShowHeadlessOverlay(_hintProviderService.EnumHints()))
-                {
-                    return;
-                }
+                RunHeadless(() => _hintProviderService.EnumHintsAsync());
             }
-            else if (e.Args.Contains("/tray"))
+            else if (isTray)
             {
                 // support headless tray mode
-                if (!ShowHeadlessOverlay(_hintProviderService.EnumHints(Taskbar.FindPrimaryTaskbar())))
-                {
-                    return;
-                }
+                RunHeadless(() => _hintProviderService.EnumHintsAsync(Taskbar.FindPrimaryTaskbar()));
             }
-            else
+            else if (!StartTray())
             {
-                // Prevent multiple startup in non-headless mode
-                if (_singleLaunchMutex.AlreadyRunning)
-                {
-                    Current.Shutdown();
-                    return;
-                }
-
-                // Create this as late as possible as it has a window
-                _keyListenerService = new KeyListenerService();
-
-                var shellViewModel = new ShellViewModel(
-                    ShowOverlay,
-                    ShowDebugOverlay,
-                    ShowOptions,
-                    _hintLabelService,
-                    _hintProviderService,
-                    _hintProviderService,
-                    _keyListenerService);
-
-                var shellView = new ShellView
-                {
-                    DataContext = shellViewModel
-                };
-                shellView.Show();
+                return;
             }
             base.OnStartup(e);
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            Trace.TraceInformation("Exiting, code {0}", e.ApplicationExitCode);
+            _keyListenerService?.Dispose();
+            _hintProviderService?.Dispose();
+            _singleLaunchMutex?.Dispose();
+            base.OnExit(e);
         }
     }
 }

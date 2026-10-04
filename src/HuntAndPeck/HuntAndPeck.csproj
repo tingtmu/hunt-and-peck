@@ -33,6 +33,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -43,6 +44,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -82,6 +84,11 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Diagnostics\AppLog.cs" />
+    <Compile Include="Diagnostics\BurstDetector.cs" />
+    <Compile Include="Diagnostics\GlobalExceptionHandlers.cs" />
+    <Compile Include="Diagnostics\NotificationThrottle.cs" />
+    <Compile Include="Diagnostics\RollingFileTraceListener.cs" />
     <Compile Include="Extensions\DpiHelper.cs" />
     <Compile Include="Extensions\IEnumerableTExtensions.cs" />
     <Compile Include="Extensions\RectExtensions.cs" />
@@ -94,6 +101,7 @@
     <Compile Include="Models\UiAutomationSelectHint.cs" />
     <Compile Include="Models\UiAutomationToggleHint.cs" />
     <Compile Include="Services\HintLabelService.cs" />
+    <Compile Include="Services\Interfaces\HotKey.cs" />
     <Compile Include="Services\Interfaces\IDebugHintProviderService.cs" />
     <Compile Include="Services\Interfaces\IHintLabelService.cs" />
     <Compile Include="Services\Interfaces\IHintProviderService.cs" />
@@ -102,8 +110,14 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Services\UiAutomationPatternIds.cs" />
+    <Compile Include="Services\UiAutomationHintFactory.cs" />
     <Compile Include="Services\UiAutomationHintProviderService.cs" />
     <Compile Include="Services\Taskbar.cs" />
+    <Compile Include="Services\TrayNotifier.cs" />
+    <Compile Include="Services\Uia\UiaAutomationFactory.cs" />
+    <Compile Include="Services\Uia\UiaErrors.cs" />
+    <Compile Include="Services\Uia\UiaExecutor.cs" />
+    <Compile Include="Services\Uia\UiaWorker.cs" />
     <Compile Include="SingleLaunchMutex.cs" />
     <Compile Include="ViewModels\DebugHintViewModel.cs" />
     <Compile Include="ViewModels\DebugOverlayViewModel.cs" />
