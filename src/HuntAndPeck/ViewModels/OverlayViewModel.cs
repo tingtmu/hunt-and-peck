@@ -115,7 +115,8 @@ namespace HuntAndPeck.ViewModels
         /// <summary>
         /// Invokes the hint (on the UIA worker thread), then closes the overlay once the invocation finished
         /// or <see cref="CloseDelay"/> passed, whichever is first. As before, the target normally acts while
-        /// the overlay is still up; a hung target can't keep the overlay open.
+        /// the overlay is still up; a hung target can't keep the overlay open. A hint that must not run under the
+        /// overlay (<see cref="Hint.InvokeAfterOverlayCloses"/>) is invoked right after the overlay closed instead.
         /// </summary>
         private async void InvokeAndClose(Hint hint)
         {
@@ -125,6 +126,16 @@ namespace HuntAndPeck.ViewModels
                 return;
             }
             _invoked = true;
+
+            if (hint.InvokeAfterOverlayCloses)
+            {
+                // Published before closing: headless mode reads PendingInvocation from the window's Closed event
+                var started = new TaskCompletionSource<Task>();
+                PendingInvocation = started.Task.Unwrap();
+                CloseOverlay?.Invoke();
+                started.SetResult(_invokeHint(hint));
+                return;
+            }
 
             var invocation = _invokeHint(hint);
             PendingInvocation = invocation;

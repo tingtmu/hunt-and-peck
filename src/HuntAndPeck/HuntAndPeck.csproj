@@ -106,6 +106,7 @@
     <Compile Include="Models\DebugHint.cs" />
     <Compile Include="Models\Hint.cs" />
     <Compile Include="Models\HintSession.cs" />
+    <Compile Include="Models\UiAutomationClickHint.cs" />
     <Compile Include="Models\UiAutomationExpandCollapseHint.cs" />
     <Compile Include="Models\UiAutomationFocusHint.cs" />
     <Compile Include="Models\UiAutomationInvokeHint.cs" />
@@ -180,6 +181,7 @@
     <Compile Include="Views\ForegroundWindow.cs" />
     <Compile Include="Views\HotKeyCaptureBox.cs" />
     <Compile Include="Views\OverlayPlacement.cs" />
+    <Compile Include="Views\OverlayTheme.cs" />
     <Compile Include="Views\PhysicalOverlayWindow.cs" />
     <Compile Include="Views\OptionsView.xaml.cs">
       <DependentUpon>OptionsView.xaml</DependentUpon>

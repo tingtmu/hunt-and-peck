@@ -67,7 +67,7 @@ namespace HuntAndPeck.Services
             var hints = CreateHints(target, scan);
             if (target.BarsMode)
             {
-                hints = HintDedup.DropContained(hints, x => x is UiAutomationLegacyDefaultActionHint);
+                hints = HintDedup.DropContained(hints, x => x is UiAutomationLegacyDefaultActionHint || x is UiAutomationClickHint);
             }
 
             Trace.TraceInformation(

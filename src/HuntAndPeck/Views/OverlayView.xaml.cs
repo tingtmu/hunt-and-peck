@@ -11,6 +11,9 @@ namespace HuntAndPeck.Views
         public OverlayView()
         {
             InitializeComponent();
+
+            // Read per overlay, so a theme change applies from the next hotkey press
+            OverlayTheme.ForSystem().ApplyTo(Resources);
         }
 
         private void OverlayView_OnPreviewKeyDown(object sender, KeyEventArgs e)
