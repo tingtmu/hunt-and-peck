@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Security;
 using System.Threading.Tasks;
-using System.Windows.Forms;
+using HuntAndPeck.Configuration;
 using HuntAndPeck.Models;
 using HuntAndPeck.NativeMethods;
 using HuntAndPeck.Services;
@@ -24,8 +24,11 @@ namespace HuntAndPeck.ViewModels
         private readonly IHintProviderService _hintProviderService;
         private readonly IDebugHintProviderService _debugHintProviderService;
         private readonly IStartupRegistrationService _startupRegistration;
+        private readonly IKeyListenerService _keyListener;
+        private readonly IUserSettings _settings;
         private readonly Action<string> _notifyWarning;
         private bool _startWithWindows;
+        private string _toolTipText;
 
         /// <summary>
         /// True while a hint enumeration is running or an overlay is open; further hotkey presses are ignored
@@ -42,6 +45,7 @@ namespace HuntAndPeck.ViewModels
             IDebugHintProviderService debugHintProviderService,
             IKeyListenerService keyListener,
             IStartupRegistrationService startupRegistration,
+            IUserSettings settings,
             Action<string> notifyWarning)
         {
             _showOverlay = showOverlay;
@@ -52,11 +56,12 @@ namespace HuntAndPeck.ViewModels
             _hintProviderService = hintProviderService;
             _debugHintProviderService = debugHintProviderService;
             _startupRegistration = startupRegistration;
+            _keyListener = keyListener;
+            _settings = settings;
             _notifyWarning = notifyWarning;
 
-            var hotKeys = RegisterHotKeys(keyListener);
-            UnavailableHotKeys = hotKeys.Where(x => !x.IsRegistered).ToList();
-            ToolTipText = BuildToolTipText(hotKeys);
+            RegisterHotKeys(keyListener, settings.Load());
+            RefreshHotKeyStatus();
 
             keyListener.OnHotKeyActivated += _keyListener_OnHotKeyActivated;
             keyListener.OnTaskbarHotKeyActivated += _keyListener_OnTaskbarHotKeyActivated;
@@ -80,12 +85,16 @@ namespace HuntAndPeck.ViewModels
         /// <summary>
         /// Tray icon tooltip, listing the hotkeys and whether they are available
         /// </summary>
-        public string ToolTipText { get; }
+        public string ToolTipText
+        {
+            get { return _toolTipText; }
+            private set { _toolTipText = value; NotifyOfPropertyChange(); }
+        }
 
         /// <summary>
         /// Hotkeys that could not be registered (e.g. already used by another app)
         /// </summary>
-        public IReadOnlyList<HotKey> UnavailableHotKeys { get; }
+        public IReadOnlyList<HotKey> UnavailableHotKeys { get; private set; }
 
         /// <summary>
         /// User facing warning about unavailable hotkeys, else null if all were registered
@@ -100,34 +109,65 @@ namespace HuntAndPeck.ViewModels
                 }
                 var names = string.Join(", ", UnavailableHotKeys.Select(x => x.ToString()));
                 var verb = UnavailableHotKeys.Count == 1 ? "is" : "are";
-                return string.Format("{0} {1} already used by another app, so HuntAndPeck can't use it. Close that app and restart HuntAndPeck.", names, verb);
+                return string.Format("{0} {1} already used by another app, so HuntAndPeck can't use it. Choose another hotkey in Options, or close that app and restart HuntAndPeck.", names, verb);
             }
         }
 
-        private static List<HotKey> RegisterHotKeys(IKeyListenerService keyListener)
+        private static void RegisterHotKeys(IKeyListenerService keyListener, UserSettingsSnapshot settings)
         {
-            keyListener.HotKey = new HotKey
-            {
-                Keys = Keys.OemSemicolon,
-                Modifier = KeyModifier.Alt
-            };
-
-            keyListener.TaskbarHotKey = new HotKey
-            {
-                Keys = Keys.OemSemicolon,
-                Modifier = KeyModifier.Control
-            };
-
-            var hotKeys = new List<HotKey> { keyListener.HotKey, keyListener.TaskbarHotKey };
+            keyListener.HotKey = settings.MainHotKey.ToHotKey();
+            keyListener.TaskbarHotKey = settings.TaskbarHotKey.ToHotKey();
 #if DEBUG
             keyListener.DebugHotKey = new HotKey
             {
-                Keys = Keys.OemSemicolon,
+                Keys = System.Windows.Forms.Keys.OemSemicolon,
                 Modifier = KeyModifier.Alt | KeyModifier.Shift
             };
-            hotKeys.Add(keyListener.DebugHotKey);
 #endif
-            return hotKeys;
+        }
+
+        /// <summary>
+        /// Updates <see cref="UnavailableHotKeys"/> and <see cref="ToolTipText"/> after hotkeys changed
+        /// </summary>
+        private void RefreshHotKeyStatus()
+        {
+            var hotKeys = new[] { _keyListener.HotKey, _keyListener.TaskbarHotKey, _keyListener.DebugHotKey }
+                .Where(x => x != null)
+                .ToList();
+            UnavailableHotKeys = hotKeys.Where(x => !x.IsRegistered).ToList();
+            ToolTipText = BuildToolTipText(hotKeys);
+        }
+
+        private IReadOnlyList<HotKeyFailure> ApplyHotKeys(HotKeyCombination main, HotKeyCombination taskbar)
+        {
+            var failures = _keyListener.ReplaceHotKeys(main.ToHotKey(), taskbar.ToHotKey());
+            RefreshHotKeyStatus();
+            if (failures.Any(x => !x.IsRestore))
+            {
+                // Not applied: the options window stays open and shows all failures
+                return failures;
+            }
+
+            // Applied, so the options window closes: report hotkeys that stopped working here instead
+            WarnRestoreFailures(failures);
+            return new HotKeyFailure[0];
+        }
+
+        private void SuspendHotKeys(bool suspended)
+        {
+            var failures = _keyListener.SetSuspended(suspended);
+            RefreshHotKeyStatus();
+            WarnRestoreFailures(failures);
+        }
+
+        private void WarnRestoreFailures(IReadOnlyList<HotKeyFailure> failures)
+        {
+            if (failures.Count == 0)
+            {
+                return;
+            }
+            var messages = string.Join(" ", failures.Select(x => x.Message));
+            _notifyWarning("Some hotkeys stopped working: " + messages + " Choose another hotkey in Options.");
         }
 
         private static string BuildToolTipText(IEnumerable<HotKey> hotKeys)
@@ -159,7 +199,8 @@ namespace HuntAndPeck.ViewModels
 
         private void ShowHintOverlay(HintSession session)
         {
-            _showOverlay(new OverlayViewModel(session, _hintLabelService, _hintProviderService.InvokeHintAsync));
+            var fontSize = _settings.Load().FontSize;
+            _showOverlay(new OverlayViewModel(session, _hintLabelService, _hintProviderService.InvokeHintAsync, fontSize));
         }
 
         /// <summary>
@@ -252,7 +293,7 @@ namespace HuntAndPeck.ViewModels
 
         public void ShowOptions()
         {
-            var vm = new OptionsViewModel();
+            var vm = new OptionsViewModel(_settings, ApplyHotKeys, SuspendHotKeys);
             _showOptions(vm);
         }
     }

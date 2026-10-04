@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using HuntAndPeck.Configuration;
 using HuntAndPeck.Extensions;
 using HuntAndPeck.Services.Interfaces;
 
@@ -9,6 +10,29 @@ namespace HuntAndPeck.Services
 {
     internal class HintLabelService : IHintLabelService
     {
+        private readonly char[] _hintCharacters;
+
+        /// <summary>
+        /// Uses the default alphabet, <see cref="HintAlphabet.Default"/>
+        /// </summary>
+        public HintLabelService()
+            : this(HintAlphabet.Default)
+        {
+        }
+
+        /// <param name="alphabet">The label letters; must pass <see cref="HintAlphabet.TryNormalize"/></param>
+        /// <exception cref="ArgumentException">The alphabet is invalid</exception>
+        public HintLabelService(string alphabet)
+        {
+            string normalized;
+            string error;
+            if (!HintAlphabet.TryNormalize(alphabet, out normalized, out error))
+            {
+                throw new ArgumentException(error, nameof(alphabet));
+            }
+            _hintCharacters = normalized.ToCharArray();
+        }
+
         /// <summary>
         /// Gets available hint strings
         /// </summary>
@@ -23,8 +47,8 @@ namespace HuntAndPeck.Services
                 return hintStrings;
             }
 
-            var hintCharacters = new[] { 'S', 'A', 'D', 'F', 'J', 'K', 'L', 'E', 'W', 'C', 'M', 'P', 'G', 'H' };
-            var digitsNeeded = (int)Math.Ceiling(Math.Log(hintCount) / Math.Log(hintCharacters.Length));
+            var hintCharacters = _hintCharacters;
+            var digitsNeeded = DigitsNeeded(hintCount, hintCharacters.Length);
 
             var wholeHintCount = (int)Math.Pow(hintCharacters.Length, digitsNeeded);
             var shortHintCount = (wholeHintCount - hintCount) / hintCharacters.Length;
@@ -49,6 +73,21 @@ namespace HuntAndPeck.Services
             }
 
             return hintStrings.ToList();
+        }
+
+        /// <summary>
+        /// The smallest number of digits d with base^d >= count, i.e. ceil(log(count) / log(base)) computed with
+        /// integers: the floating point division can land just above a whole number (e.g. log(8) / log(2)),
+        /// giving one digit too many and labels that are prefixes of others
+        /// </summary>
+        private static int DigitsNeeded(int count, int numberBase)
+        {
+            var digits = 0;
+            for (long capacity = 1; capacity < count; capacity *= numberBase)
+            {
+                ++digits;
+            }
+            return digits;
         }
 
         /// <summary>

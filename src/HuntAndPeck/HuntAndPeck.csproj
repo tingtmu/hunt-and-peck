@@ -57,6 +57,7 @@
   <PropertyGroup />
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
@@ -84,6 +85,16 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Configuration\CorruptSettingsFile.cs" />
+    <Compile Include="Configuration\FontSizeSetting.cs" />
+    <Compile Include="Configuration\HintAlphabet.cs" />
+    <Compile Include="Configuration\HotKeyCombination.cs" />
+    <Compile Include="Configuration\HotKeyParser.cs" />
+    <Compile Include="Configuration\IUserSettings.cs" />
+    <Compile Include="Configuration\KeyNames.cs" />
+    <Compile Include="Configuration\SettingsBootstrapper.cs" />
+    <Compile Include="Configuration\UserSettings.cs" />
+    <Compile Include="Configuration\UserSettingsSnapshot.cs" />
     <Compile Include="Diagnostics\AppLog.cs" />
     <Compile Include="Diagnostics\BurstDetector.cs" />
     <Compile Include="Diagnostics\GlobalExceptionHandlers.cs" />
@@ -100,10 +111,13 @@
     <Compile Include="Models\UiAutomationInvokeHint.cs" />
     <Compile Include="Models\UiAutomationSelectHint.cs" />
     <Compile Include="Models\UiAutomationToggleHint.cs" />
+    <Compile Include="Services\ConfiguredHintLabelService.cs" />
     <Compile Include="Services\HintBounds.cs" />
     <Compile Include="Services\HintFactoryMethod.cs" />
     <Compile Include="Services\HintLabelService.cs" />
+    <Compile Include="Services\HotKeyTransaction.cs" />
     <Compile Include="Services\Interfaces\HotKey.cs" />
+    <Compile Include="Services\Interfaces\HotKeyFailure.cs" />
     <Compile Include="Services\Interfaces\IDebugHintProviderService.cs" />
     <Compile Include="Services\Interfaces\IHintLabelService.cs" />
     <Compile Include="Services\Interfaces\IHintProviderService.cs" />
@@ -137,6 +151,7 @@
     <Compile Include="ViewModels\DelegateCommand.cs" />
     <Compile Include="ViewModels\IOverlayBounds.cs" />
     <Compile Include="ViewModels\HintViewModel.cs" />
+    <Compile Include="ViewModels\HotKeyEditorViewModel.cs" />
     <Compile Include="ViewModels\NotifyPropertyChanged.cs" />
     <Compile Include="ViewModels\OptionsViewModel.cs" />
     <Compile Include="ViewModels\ShellViewModel.cs" />
@@ -145,6 +160,7 @@
       <DependentUpon>DebugOverlayView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\ForegroundWindow.cs" />
+    <Compile Include="Views\HotKeyCaptureBox.cs" />
     <Compile Include="Views\PhysicalOverlayWindow.cs" />
     <Compile Include="Views\OptionsView.xaml.cs">
       <DependentUpon>OptionsView.xaml</DependentUpon>
@@ -206,7 +222,7 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.0.5" />
+    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.1.0" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>

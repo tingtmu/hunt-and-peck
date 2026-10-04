@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows;
+using HuntAndPeck.Configuration;
 using HuntAndPeck.Models;
 using HuntAndPeck.Services.Interfaces;
 
@@ -21,10 +22,12 @@ namespace HuntAndPeck.ViewModels
         /// <param name="session">The hints to show</param>
         /// <param name="hintLabelService">Assigns labels to hints</param>
         /// <param name="invokeHint">Invokes the selected hint asynchronously</param>
+        /// <param name="fontSize">Label font size</param>
         public OverlayViewModel(
             HintSession session,
             IHintLabelService hintLabelService,
-            Func<Hint, Task> invokeHint)
+            Func<Hint, Task> invokeHint,
+            double fontSize = FontSizeSetting.Default)
         {
             _invokeHint = invokeHint;
             _bounds = session.OwningWindowBounds;
@@ -33,7 +36,7 @@ namespace HuntAndPeck.ViewModels
             for (int i = 0; i < labels.Count; ++i)
             {
                 var hint = session.Hints[i];
-                _hints.Add(new HintViewModel(hint)
+                _hints.Add(new HintViewModel(hint, fontSize)
                 {
                     Label = labels[i],
                     Active = false

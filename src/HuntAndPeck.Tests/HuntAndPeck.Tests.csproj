@@ -36,6 +36,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.Numerics" />
@@ -47,6 +48,7 @@
     <Reference Include="System.Xml" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3">
@@ -65,6 +67,11 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Configuration\CorruptSettingsFileTest.cs" />
+    <Compile Include="Configuration\FontSizeSettingTest.cs" />
+    <Compile Include="Configuration\HintAlphabetTest.cs" />
+    <Compile Include="Configuration\HotKeyParserTest.cs" />
+    <Compile Include="Configuration\UserSettingsTest.cs" />
     <Compile Include="Diagnostics\BurstDetectorTest.cs" />
     <Compile Include="Diagnostics\NotificationThrottleTest.cs" />
     <Compile Include="Diagnostics\RollingFileTraceListenerTest.cs" />
@@ -76,11 +83,14 @@
     <Compile Include="Services\UiAutomationHintKindSelectorTest.cs" />
     <Compile Include="Services\HotKeyTest.cs" />
     <Compile Include="Services\FakeRegistryRunKey.cs" />
+    <Compile Include="Services\HotKeyTransactionTest.cs" />
     <Compile Include="Services\StartupRegistrationServiceTest.cs" />
     <Compile Include="Services\Uia\UiaErrorsTest.cs" />
     <Compile Include="Services\Uia\UiaExecutorTest.cs" />
     <Compile Include="Services\Uia\UiaWorkerTest.cs" />
     <Compile Include="SingleLaunchMutexTest.cs" />
+    <Compile Include="ViewModels\FakeUserSettings.cs" />
+    <Compile Include="ViewModels\OptionsViewModelTest.cs" />
     <Compile Include="ViewModels\OverlayViewModelTest.cs" />
     <Compile Include="ViewModels\ShellViewModelTest.cs" />
   </ItemGroup>

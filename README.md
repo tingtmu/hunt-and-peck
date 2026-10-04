@@ -11,9 +11,29 @@ NOTE: hunt-n-peck is sporadically maintained, please consider one of the various
 
 https://github.com/zsims/hunt-and-peck/releases/download/release%2F1.7/HuntAndPeck-1.7.zip
 
-# How to change font size
+# Configuration
 
-Find the application icon in tray, click right mouse button, select `Options`, then use the `FontSize` menu to change the font size.
+Right-click (or left-click) the tray icon and select `Options`:
+
+- **Hotkeys**: click the box for the window or taskbar hotkey and press the new combination (Ctrl, Alt or
+  Win plus a key, or F1-F24 on their own). `Reset` restores the default (`Alt + ;` and `Ctrl + ;`). If
+  another app already uses the combination, the window says so and the old hotkey stays active.
+- **Letters**: the letters used for hint labels, 2-26 different letters A-Z (default `SADFJKLEWCMPGH`).
+- **Font size**: hint label size, 6-72 (default 14).
+
+Changes apply when you press `OK`; `Cancel` (or Esc) discards them.
+
+The tray menu's `Start with Windows` item starts HuntAndPeck at sign-in (an entry under
+`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, which Task Manager's Startup apps page can also disable).
+
+Where things live:
+
+- Settings: `%LOCALAPPDATA%\HuntAndPeck\hap.exe_Url_<hash>\<version>\user.config` (standard .NET user
+  settings; the hash depends on where `hap.exe` is). Settings carry over when you update HuntAndPeck in the
+  same folder. If the file is damaged, HuntAndPeck renames it to `user.config.corrupt-<timestamp>`, starts with
+  the defaults and shows a notification. Invalid values (e.g. edited by hand) are logged and replaced by their
+  defaults.
+- Log: `%LOCALAPPDATA%\HuntAndPeck\hap.log`.
 
 # Screenshots
 

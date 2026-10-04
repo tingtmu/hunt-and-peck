@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security;
 using System.Threading.Tasks;
 using System.Windows;
+using HuntAndPeck.Configuration;
 using HuntAndPeck.Diagnostics;
 using HuntAndPeck.Models;
 using HuntAndPeck.Services;
@@ -25,7 +26,8 @@ namespace HuntAndPeck
         private static readonly TimeSpan HeadlessInvocationWait =
             UiAutomationHintProviderService.InvocationTimeout + TimeSpan.FromSeconds(1);
 
-        private readonly HintLabelService _hintLabelService = new HintLabelService();
+        private readonly UserSettings _settings = new UserSettings();
+        private ConfiguredHintLabelService _hintLabelService;
         private UiAutomationHintProviderService _hintProviderService;
         private SingleLaunchMutex _singleLaunchMutex;
         private KeyListenerService _keyListenerService;
@@ -74,6 +76,8 @@ namespace HuntAndPeck
             {
                 DataContext = vm
             };
+            // Shown modally, so setting DialogResult closes it
+            vm.Close = () => view.DialogResult = true;
             view.ShowDialog();
         }
 
@@ -93,7 +97,7 @@ namespace HuntAndPeck
                     return;
                 }
 
-                var vm = new OverlayViewModel(session, _hintLabelService, _hintProviderService.InvokeHintAsync);
+                var vm = new OverlayViewModel(session, _hintLabelService, _hintProviderService.InvokeHintAsync, _settings.Load().FontSize);
                 var view = CreateOverlayView(vm);
                 view.Closed += async (sender, args) =>
                 {
@@ -145,6 +149,7 @@ namespace HuntAndPeck
                 _hintProviderService,
                 _keyListenerService,
                 startupRegistration,
+                _settings,
                 _trayNotifier.ShowWarning);
 
             var shellView = new ShellView
@@ -177,6 +182,19 @@ namespace HuntAndPeck
             }
         }
 
+        /// <summary>
+        /// Loads the user settings, telling the user if a damaged settings file was reset
+        /// </summary>
+        private void InitializeSettings()
+        {
+            var warning = SettingsBootstrapper.Initialize();
+            if (warning != null)
+            {
+                // Shown once the tray icon is attached (queued at background priority); headless only logs it
+                _trayNotifier.ShowWarning(warning);
+            }
+        }
+
         protected override void OnStartup(StartupEventArgs e)
         {
             var isHint = e.Args.Contains("/hint");
@@ -186,6 +204,8 @@ namespace HuntAndPeck
             _trayNotifier = new TrayNotifier(Dispatcher);
             _exceptionHandlers = new GlobalExceptionHandlers(this, _trayNotifier, isHint || isTray);
             _exceptionHandlers.Register();
+            InitializeSettings();
+            _hintLabelService = new ConfiguredHintLabelService(() => _settings.Load().HintAlphabet);
             _hintProviderService = new UiAutomationHintProviderService(_trayNotifier.ShowWarning);
 
             if (isHint)

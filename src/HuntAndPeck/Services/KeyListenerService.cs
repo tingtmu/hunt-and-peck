@@ -1,6 +1,8 @@
 ﻿using HuntAndPeck.NativeMethods;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using HuntAndPeck.Services.Interfaces;
@@ -10,7 +12,7 @@ namespace HuntAndPeck.Services
     internal class KeyListenerService : Form, IKeyListenerService
     {
         /// <summary>ERROR_HOTKEY_ALREADY_REGISTERED: another app owns the key combination</summary>
-        public const int ErrorHotKeyAlreadyRegistered = 1409;
+        public const int ErrorHotKeyAlreadyRegistered = HotKeyFailure.ErrorHotKeyAlreadyRegistered;
 
         public event EventHandler OnHotKeyActivated;
         public event EventHandler OnTaskbarHotKeyActivated;
@@ -25,31 +27,64 @@ namespace HuntAndPeck.Services
         private HotKey _hotKey;
         private HotKey _taskbarHotKey;
         private HotKey _debugHotKey;
+        private bool _suspended;
 
         /// <summary>
-        /// Re-registers the current hotkey, unregistering any previous key
+        /// While suspended: the hotkeys to register on resume (those registered when suspending, plus any
+        /// set meanwhile). Hotkeys that were already unavailable are not retried.
         /// </summary>
-        /// <returns>True if the hotkey was registered</returns>
-        private bool ReRegisterHotKey(HotKey hotKey)
+        private readonly List<HotKey> _toResume = new List<HotKey>();
+
+        /// <summary>
+        /// Makes <paramref name="value"/> the hotkey in place of <paramref name="current"/>, registering it
+        /// now or, while suspended, on resume
+        /// </summary>
+        /// <returns><paramref name="value"/></returns>
+        private HotKey Assign(HotKey current, HotKey value)
         {
-            // Already registered, have to unregister first
-            if (hotKey.IsRegistered && !User32.UnregisterHotKey(Handle, hotKey.RegistrationId))
+            if (current != null && !ReferenceEquals(current, value))
             {
-                Trace.TraceWarning("UnregisterHotKey {0} (id {1}) failed, error {2}", hotKey, hotKey.RegistrationId, Marshal.GetLastWin32Error());
+                Unregister(current);
+                _toResume.Remove(current);
+            }
+            if (value == null)
+            {
+                return null;
             }
 
+            Unregister(value);
+            if (!_suspended)
+            {
+                Register(value);
+            }
+            else if (!_toResume.Contains(value))
+            {
+                _toResume.Add(value);
+            }
+            return value;
+        }
+
+        /// <summary>
+        /// Registers the hotkey under a new id, logging failures
+        /// </summary>
+        /// <returns>0 on success, else the Win32 error</returns>
+        private int Register(HotKey hotKey)
+        {
             hotKey.RegistrationId = _hotkeyIdCounter++;
-            hotKey.IsRegistered = User32.RegisterHotKey(Handle, hotKey.RegistrationId, (uint)hotKey.Modifier, (uint)hotKey.Keys);
+            // MOD_NOREPEAT: holding the combination down does not fire repeatedly
+            var modifiers = (uint)(hotKey.Modifier | KeyModifier.NoRepeat);
+            hotKey.IsRegistered = User32.RegisterHotKey(Handle, hotKey.RegistrationId, modifiers, (uint)hotKey.Keys);
             if (hotKey.IsRegistered)
             {
                 Trace.TraceInformation("Registered hotkey {0}", hotKey);
-                return true;
+                return 0;
             }
 
             var error = Marshal.GetLastWin32Error();
             var reason = error == ErrorHotKeyAlreadyRegistered ? "already registered by another app" : "failed";
             Trace.TraceWarning("RegisterHotKey {0} {1}, error {2}", hotKey, reason, error);
-            return false;
+            // Guard against a failure that did not set the last error
+            return error == 0 ? -1 : error;
         }
 
         /// <summary>
@@ -64,8 +99,7 @@ namespace HuntAndPeck.Services
             }
             set
             {
-                _hotKey = value;
-                ReRegisterHotKey(_hotKey);
+                _hotKey = Assign(_hotKey, value);
             }
         }
 
@@ -81,8 +115,7 @@ namespace HuntAndPeck.Services
             }
             set
             {
-                _taskbarHotKey = value;
-                ReRegisterHotKey(_taskbarHotKey);
+                _taskbarHotKey = Assign(_taskbarHotKey, value);
             }
         }
 
@@ -94,9 +127,58 @@ namespace HuntAndPeck.Services
             }
             set
             {
-                _debugHotKey = value;
-                ReRegisterHotKey(_debugHotKey);
+                _debugHotKey = Assign(_debugHotKey, value);
             }
+        }
+
+        public IReadOnlyList<HotKeyFailure> ReplaceHotKeys(HotKey hotKey, HotKey taskbarHotKey)
+        {
+            var resumeFailures = SetSuspended(false);
+            var changes = new[]
+            {
+                Tuple.Create(_hotKey, hotKey),
+                Tuple.Create(_taskbarHotKey, taskbarHotKey),
+            };
+            var failures = resumeFailures.Concat(HotKeyTransaction.Apply(changes, Register, Unregister)).ToList();
+            if (failures.Any(x => !x.IsRestore))
+            {
+                return failures;
+            }
+
+            // Keep the current objects for unchanged combinations: they hold the registration
+            _hotKey = HotKeyTransaction.SameCombination(_hotKey, hotKey) ? _hotKey : hotKey;
+            _taskbarHotKey = HotKeyTransaction.SameCombination(_taskbarHotKey, taskbarHotKey) ? _taskbarHotKey : taskbarHotKey;
+            return failures;
+        }
+
+        public IReadOnlyList<HotKeyFailure> SetSuspended(bool suspended)
+        {
+            var failures = new List<HotKeyFailure>();
+            if (_suspended == suspended)
+            {
+                return failures;
+            }
+
+            _suspended = suspended;
+            Trace.TraceInformation("Hotkeys {0}", suspended ? "suspended" : "resumed");
+            if (suspended)
+            {
+                _toResume.Clear();
+                _toResume.AddRange(new[] { _hotKey, _taskbarHotKey, _debugHotKey }.Where(x => x != null && x.IsRegistered));
+                _toResume.ForEach(Unregister);
+                return failures;
+            }
+
+            foreach (var hotKey in _toResume)
+            {
+                var error = Register(hotKey);
+                if (error != 0)
+                {
+                    failures.Add(new HotKeyFailure(hotKey, error, isRestore: true));
+                }
+            }
+            _toResume.Clear();
+            return failures;
         }
 
         protected override void WndProc(ref Message m)
@@ -143,7 +225,8 @@ namespace HuntAndPeck.Services
 
         private static bool Matches(HotKey hotKey, HotKeyEventArgs e)
         {
-            return hotKey != null && e.Key == hotKey.Keys && e.Modifiers == hotKey.Modifier;
+            // Mask MOD_NOREPEAT, which is passed to RegisterHotKey but is not part of the combination
+            return hotKey != null && e.Key == hotKey.Keys && (e.Modifiers & ~KeyModifier.NoRepeat) == hotKey.Modifier;
         }
 
         private void Unregister(HotKey hotKey)
@@ -155,7 +238,7 @@ namespace HuntAndPeck.Services
 
             if (!User32.UnregisterHotKey(Handle, hotKey.RegistrationId))
             {
-                Trace.TraceWarning("UnregisterHotKey {0} failed on exit, error {1}", hotKey, Marshal.GetLastWin32Error());
+                Trace.TraceWarning("UnregisterHotKey {0} (id {1}) failed, error {2}", hotKey, hotKey.RegistrationId, Marshal.GetLastWin32Error());
             }
             hotKey.IsRegistered = false;
         }
