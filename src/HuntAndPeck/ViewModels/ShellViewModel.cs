@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Security;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using HuntAndPeck.Models;
@@ -11,7 +14,7 @@ using Application = System.Windows.Application;
 
 namespace HuntAndPeck.ViewModels
 {
-    internal class ShellViewModel
+    internal class ShellViewModel : NotifyPropertyChanged
     {
         private readonly Action<OverlayViewModel> _showOverlay;
         private readonly Action<DebugOverlayViewModel> _showDebugOverlay;
@@ -20,6 +23,9 @@ namespace HuntAndPeck.ViewModels
         private readonly IHintLabelService _hintLabelService;
         private readonly IHintProviderService _hintProviderService;
         private readonly IDebugHintProviderService _debugHintProviderService;
+        private readonly IStartupRegistrationService _startupRegistration;
+        private readonly Action<string> _notifyWarning;
+        private bool _startWithWindows;
 
         /// <summary>
         /// True while a hint enumeration is running or an overlay is open; further hotkey presses are ignored
@@ -34,7 +40,9 @@ namespace HuntAndPeck.ViewModels
             IHintLabelService hintLabelService,
             IHintProviderService hintProviderService,
             IDebugHintProviderService debugHintProviderService,
-            IKeyListenerService keyListener)
+            IKeyListenerService keyListener,
+            IStartupRegistrationService startupRegistration,
+            Action<string> notifyWarning)
         {
             _showOverlay = showOverlay;
             _showDebugOverlay = showDebugOverlay;
@@ -43,6 +51,8 @@ namespace HuntAndPeck.ViewModels
             _hintLabelService = hintLabelService;
             _hintProviderService = hintProviderService;
             _debugHintProviderService = debugHintProviderService;
+            _startupRegistration = startupRegistration;
+            _notifyWarning = notifyWarning;
 
             var hotKeys = RegisterHotKeys(keyListener);
             UnavailableHotKeys = hotKeys.Where(x => !x.IsRegistered).ToList();
@@ -54,10 +64,18 @@ namespace HuntAndPeck.ViewModels
 
             ShowOptionsCommand = new DelegateCommand(ShowOptions);
             ExitCommand = new DelegateCommand(Exit);
+            ToggleStartWithWindowsCommand = new DelegateCommand(ToggleStartWithWindows);
+            RefreshStartWithWindows();
         }
 
         public DelegateCommand ShowOptionsCommand { get; }
         public DelegateCommand ExitCommand { get; }
+        public DelegateCommand ToggleStartWithWindowsCommand { get; }
+
+        /// <summary>
+        /// Checked state of the tray menu's "Start with Windows" item: whether Windows starts HuntAndPeck at sign-in
+        /// </summary>
+        public bool StartWithWindows => _startWithWindows;
 
         /// <summary>
         /// Tray icon tooltip, listing the hotkeys and whether they are available
@@ -179,6 +197,57 @@ namespace HuntAndPeck.ViewModels
         public void Exit()
         {
             Application.Current.Shutdown();
+        }
+
+        /// <summary>
+        /// Re-reads <see cref="StartWithWindows"/>, which can change outside the app (e.g. in Task Manager);
+        /// called whenever the tray menu opens
+        /// </summary>
+        /// <remarks>Always raises PropertyChanged, so the menu item drops any checked state it toggled itself</remarks>
+        public void RefreshStartWithWindows()
+        {
+            try
+            {
+                _startWithWindows = _startupRegistration.IsEnabled;
+            }
+            catch (Exception ex) when (IsRegistryError(ex))
+            {
+                // Keep the last known state; the menu item still works and reports a failure if toggled
+                Trace.TraceWarning("Startup: reading the start with Windows state failed: {0}", ex);
+            }
+            NotifyOfPropertyChange(nameof(StartWithWindows));
+        }
+
+        /// <summary>
+        /// Turns start with Windows on or off; on failure tells the user and keeps the actual state
+        /// </summary>
+        public void ToggleStartWithWindows()
+        {
+            var enable = !_startWithWindows;
+            try
+            {
+                if (enable)
+                {
+                    _startupRegistration.Enable();
+                }
+                else
+                {
+                    _startupRegistration.Disable();
+                }
+            }
+            catch (Exception ex) when (IsRegistryError(ex))
+            {
+                Trace.TraceWarning("Startup: turning start with Windows {0} failed: {1}", enable ? "on" : "off", ex);
+                _notifyWarning(string.Format("Couldn't turn {0} Start with Windows: {1}", enable ? "on" : "off", ex.Message));
+            }
+
+            // Show the actual state, which reverts the menu item's own toggle if the change failed
+            RefreshStartWithWindows();
+        }
+
+        private static bool IsRegistryError(Exception ex)
+        {
+            return ex is SecurityException || ex is UnauthorizedAccessException || ex is IOException;
         }
 
         public void ShowOptions()

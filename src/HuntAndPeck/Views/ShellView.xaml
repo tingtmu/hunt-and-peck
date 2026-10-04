@@ -10,8 +10,13 @@
                     ToolTipText="{Binding ToolTipText}"
                     MenuActivation="LeftOrRightClick">
         <tb:TaskbarIcon.ContextMenu>
-            <ContextMenu>
+            <ContextMenu Opened="ContextMenu_Opened">
                 <MenuItem Header="Options" Command="{Binding ShowOptionsCommand}"></MenuItem>
+                <!-- OneWay: the command applies the change, then the view model re-reads and pushes the actual state -->
+                <MenuItem Header="Start with Windows"
+                          IsCheckable="True"
+                          IsChecked="{Binding StartWithWindows, Mode=OneWay}"
+                          Command="{Binding ToggleStartWithWindowsCommand}"></MenuItem>
                 <Separator />
                 <MenuItem Header="Exit" Command="{Binding ExitCommand}"></MenuItem>
             </ContextMenu>

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using HuntAndPeck.Models;
 using HuntAndPeck.Services;
 using HuntAndPeck.Services.Interfaces;
+using HuntAndPeck.Tests.Services;
 using HuntAndPeck.ViewModels;
 using Xunit;
 
@@ -12,6 +13,58 @@ namespace HuntAndPeck.Tests.ViewModels
 {
     public class ShellViewModelTest
     {
+        private const string ExePath = @"C:\Program Files\Hunt And Peck\hap.exe";
+
+        [Fact]
+        public void StartWithWindows_Toggle_EnablesThenDisables()
+        {
+            var registry = new FakeRegistryRunKey();
+            var warnings = new List<string>();
+            var shell = CreateShell(registry, warnings);
+            Assert.False(shell.StartWithWindows);
+
+            shell.ToggleStartWithWindowsCommand.Execute(null);
+            Assert.True(shell.StartWithWindows);
+            Assert.Equal("\"" + ExePath + "\"", registry.Run[StartupRegistrationService.ValueName]);
+
+            shell.ToggleStartWithWindowsCommand.Execute(null);
+            Assert.False(shell.StartWithWindows);
+            Assert.Empty(registry.Run);
+            Assert.Empty(warnings);
+        }
+
+        [Fact]
+        public void StartWithWindows_ToggleFails_WarnsAndRevertsCheckbox()
+        {
+            var registry = new FakeRegistryRunKey { WriteError = new UnauthorizedAccessException("denied") };
+            var warnings = new List<string>();
+            var shell = CreateShell(registry, warnings);
+            var changes = new List<string>();
+            shell.PropertyChanged += (sender, args) => changes.Add(args.PropertyName);
+
+            shell.ToggleStartWithWindowsCommand.Execute(null);
+
+            Assert.False(shell.StartWithWindows);
+            Assert.Single(warnings);
+            Assert.Contains(nameof(ShellViewModel.StartWithWindows), changes);
+        }
+
+        [Fact]
+        public void StartWithWindows_Refresh_PicksUpExternalChange()
+        {
+            var registry = new FakeRegistryRunKey();
+            var shell = CreateShell(registry, new List<string>());
+            shell.ToggleStartWithWindowsCommand.Execute(null);
+
+            // Disabled in Task Manager while the app runs
+            registry.StartupApproved[StartupRegistrationService.ValueName] = new byte[] { 0x03, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            shell.RefreshStartWithWindows();
+            Assert.False(shell.StartWithWindows);
+
+            // Toggling turns it back on, re-approving it
+            shell.ToggleStartWithWindowsCommand.Execute(null);
+            Assert.True(shell.StartWithWindows);
+        }
         [Fact]
         public void HotKey_WhileEnumerating_IsIgnored_AndFlagResetsAfterwards()
         {
@@ -84,7 +137,16 @@ namespace HuntAndPeck.Tests.ViewModels
         {
             return new ShellViewModel(
                 showOverlay, vm => { }, vm => { }, reportError,
-                new HintLabelService(), provider, null, keys);
+                new HintLabelService(), provider, null, keys,
+                new StartupRegistrationService(new FakeRegistryRunKey(), ExePath, path => true), message => { });
+        }
+
+        private static ShellViewModel CreateShell(FakeRegistryRunKey registry, List<string> warnings)
+        {
+            return new ShellViewModel(
+                vm => { }, vm => { }, vm => { }, (context, ex) => { },
+                new HintLabelService(), new FakeHintProvider(), null, new FakeKeyListener(),
+                new StartupRegistrationService(registry, ExePath, path => true), warnings.Add);
         }
 
         private sealed class FakeHintProvider : IHintProviderService

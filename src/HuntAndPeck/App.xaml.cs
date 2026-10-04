@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Security;
 using System.Threading.Tasks;
 using System.Windows;
 using HuntAndPeck.Diagnostics;
@@ -122,6 +124,14 @@ namespace HuntAndPeck
                 return false;
             }
 
+            string exePath;
+            using (var process = Process.GetCurrentProcess())
+            {
+                exePath = process.MainModule.FileName;
+            }
+            var startupRegistration = new StartupRegistrationService(new RegistryRunKey(), exePath, File.Exists);
+            UpdateStartupPathIfMoved(startupRegistration);
+
             // Create this as late as possible as it has a window
             _keyListenerService = new KeyListenerService();
 
@@ -133,7 +143,9 @@ namespace HuntAndPeck
                 _hintLabelService,
                 _hintProviderService,
                 _hintProviderService,
-                _keyListenerService);
+                _keyListenerService,
+                startupRegistration,
+                _trayNotifier.ShowWarning);
 
             var shellView = new ShellView
             {
@@ -147,6 +159,22 @@ namespace HuntAndPeck
                 _trayNotifier.ShowWarning(shellViewModel.HotKeyWarning);
             }
             return true;
+        }
+
+        /// <summary>
+        /// Keeps an existing start with Windows registration working after the exe was moved
+        /// </summary>
+        private static void UpdateStartupPathIfMoved(StartupRegistrationService startupRegistration)
+        {
+            try
+            {
+                startupRegistration.UpdatePathIfMoved();
+            }
+            catch (Exception ex) when (ex is SecurityException || ex is UnauthorizedAccessException || ex is IOException)
+            {
+                // Not worth a balloon at every start: the menu item shows the actual state and reports failures
+                Trace.TraceWarning("Startup: updating the start with Windows path failed: {0}", ex);
+            }
         }
 
         protected override void OnStartup(StartupEventArgs e)

@@ -106,12 +106,16 @@
     <Compile Include="Services\Interfaces\IHintLabelService.cs" />
     <Compile Include="Services\Interfaces\IHintProviderService.cs" />
     <Compile Include="Services\Interfaces\IKeyListenerService.cs" />
+    <Compile Include="Services\Interfaces\IRegistryRunKey.cs" />
+    <Compile Include="Services\Interfaces\IStartupRegistrationService.cs" />
     <Compile Include="Services\KeyListenerService.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Services\UiAutomationPatternIds.cs" />
     <Compile Include="Services\UiAutomationHintFactory.cs" />
     <Compile Include="Services\UiAutomationHintProviderService.cs" />
+    <Compile Include="Services\RegistryRunKey.cs" />
+    <Compile Include="Services\StartupRegistrationService.cs" />
     <Compile Include="Services\Taskbar.cs" />
     <Compile Include="Services\TrayNotifier.cs" />
     <Compile Include="Services\Uia\UiaAutomationFactory.cs" />
