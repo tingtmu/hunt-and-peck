@@ -24,7 +24,10 @@ $msbuild = "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBui
 ```
 
 Output: `src\HuntAndPeck\bin\Release\` (`hap.exe`, `hap.exe.config`, `HuntAndPeck.NativeMethods.dll`,
-`Interop.UIAutomationClient.dll`, `Hardcodet.Wpf.TaskbarNotification.dll`).
+`Interop.UIAutomationClient.dll`, `Hardcodet.NotifyIcon.Wpf.dll`).
+
+Runtime configuration (settings file, log location, start with Windows) is described in the
+[README](README.md#configuration).
 
 Use `-p:Configuration=Debug` for a debug build.
 

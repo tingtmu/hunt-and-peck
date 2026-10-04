@@ -1,5 +1,4 @@
 ﻿using HuntAndPeck.Models;
-using HuntAndPeck.Properties;
 
 namespace HuntAndPeck.ViewModels
 {
@@ -7,12 +6,13 @@ namespace HuntAndPeck.ViewModels
     {
         private string _label;
         private bool _active;
-        private string _fontSizeReadValue;
 
-        public HintViewModel(Hint hint)
+        /// <param name="hint">The hint</param>
+        /// <param name="fontSize">Label font size</param>
+        public HintViewModel(Hint hint, double fontSize)
         {
             Hint = hint;
-            FontSizeReadValue = Settings.Default.FontSize;
+            FontSize = fontSize;
         }
 
         public Hint Hint { get; set; }
@@ -29,10 +29,7 @@ namespace HuntAndPeck.ViewModels
             set { _label = value; NotifyOfPropertyChange(); }
         }
 
-        public string FontSizeReadValue
-        {
-            get { return _fontSizeReadValue; }
-            set { _fontSizeReadValue = value; NotifyOfPropertyChange(); }
-        }
+        /// <summary>Label font size</summary>
+        public double FontSize { get; }
     }
 }

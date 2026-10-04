@@ -7,5 +7,17 @@
     <Setting Name="FontSize" Type="System.String" Scope="User">
       <Value Profile="(Default)">14</Value>
     </Setting>
+    <Setting Name="UpgradeRequired" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="MainHotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Alt+OemSemicolon</Value>
+    </Setting>
+    <Setting Name="TaskbarHotKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Ctrl+OemSemicolon</Value>
+    </Setting>
+    <Setting Name="HintAlphabet" Type="System.String" Scope="User">
+      <Value Profile="(Default)">SADFJKLEWCMPGH</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
