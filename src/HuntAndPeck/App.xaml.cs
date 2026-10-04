@@ -176,7 +176,10 @@ namespace HuntAndPeck
             {
                 DataContext = shellViewModel
             };
+            // The window only hosts the tray icon: show it once (off-screen, not activated) so the icon and its
+            // bindings initialise, then hide it so no stray window appears
             shellView.Show();
+            shellView.Hide();
 
             _trayNotifier.Attach(shellView.TrayIcon);
             if (shellViewModel.HotKeyWarning != null)
