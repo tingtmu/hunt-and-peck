@@ -88,7 +88,7 @@ namespace HuntAndPeck.Views
             }
 
             ScaleContent(scale);
-            PlaceWindow(overlay.Bounds, scale);
+            PlaceWindow(OverlayPlacement.AvoidCoveringMonitor(overlay.Bounds), scale);
         }
 
         private static bool IsAlreadyAt(IntPtr hWnd, RECT target)

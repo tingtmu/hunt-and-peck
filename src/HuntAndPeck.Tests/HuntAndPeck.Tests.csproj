@@ -102,6 +102,7 @@
     <Compile Include="ViewModels\OptionsViewModelTest.cs" />
     <Compile Include="ViewModels\OverlayViewModelTest.cs" />
     <Compile Include="ViewModels\ShellViewModelTest.cs" />
+    <Compile Include="Views\OverlayPlacementTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\NativeMethods\NativeMethods.csproj">
