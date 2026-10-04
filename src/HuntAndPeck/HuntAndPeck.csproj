@@ -181,6 +181,7 @@
     <Compile Include="Views\ForegroundWindow.cs" />
     <Compile Include="Views\HotKeyCaptureBox.cs" />
     <Compile Include="Views\OverlayPlacement.cs" />
+    <Compile Include="Views\OverlayTheme.cs" />
     <Compile Include="Views\PhysicalOverlayWindow.cs" />
     <Compile Include="Views\OptionsView.xaml.cs">
       <DependentUpon>OptionsView.xaml</DependentUpon>

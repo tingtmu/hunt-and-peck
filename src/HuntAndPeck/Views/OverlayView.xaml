@@ -19,12 +19,49 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+        <!-- Typed-text box: a rounded pill in the Windows app theme's colours (OverlayTheme), shown once typing
+             starts. Sizes are physical pixels (see PhysicalOverlayWindow). -->
+        <Style x:Key="MatchBoxStyle" TargetType="TextBox">
+            <Setter Property="MinWidth" Value="72" />
+            <Setter Property="Margin" Value="0 0 0 10" />
+            <Setter Property="Padding" Value="14 5" />
+            <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI" />
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource MatchBoxText}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource MatchBoxCaret}" />
+            <Setter Property="SelectionBrush" Value="{DynamicResource MatchBoxCaret}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{DynamicResource MatchBoxBackground}"
+                                BorderBrush="{DynamicResource MatchBoxBorder}"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Padding="{TemplateBinding Padding}">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="14" ShadowDepth="2" Direction="270" Opacity="0.25" />
+                            </Border.Effect>
+                            <ScrollViewer x:Name="PART_ContentHost" Focusable="False"
+                                          HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="Text" Value="">
+                    <!-- Opacity, not Visibility: the box must keep the keyboard focus -->
+                    <Setter Property="Opacity" Value="0" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </local:PhysicalOverlayWindow.Resources>
     <local:PhysicalOverlayWindow.Background>
         <SolidColorBrush Color="Transparent" />
     </local:PhysicalOverlayWindow.Background>
     <Grid x:Name="layoutGrid">
-        <TextBox x:Name="MatchStringControl" Text="{Binding MatchString, UpdateSourceTrigger=PropertyChanged, Mode=OneWayToSource}" Width="50" VerticalAlignment="Bottom" Background="Transparent" Foreground="White" />
+        <TextBox x:Name="MatchStringControl" Text="{Binding MatchString, UpdateSourceTrigger=PropertyChanged, Mode=OneWayToSource}" VerticalAlignment="Bottom" HorizontalAlignment="Center" Style="{StaticResource MatchBoxStyle}" />
         <ItemsControl ItemsSource="{Binding Hints}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
