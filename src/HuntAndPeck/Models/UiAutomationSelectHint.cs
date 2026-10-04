@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows;
+using HuntAndPeck.Services.Uia;
 using UIAutomationClient;
 
 namespace HuntAndPeck.Models
@@ -9,17 +10,17 @@ namespace HuntAndPeck.Models
     /// </summary>
     internal class UiAutomationSelectHint : Hint
     {
-        private readonly IUIAutomationSelectionItemPattern _selectPattern;
+        private readonly IUIAutomationElement _automationElement;
 
-        public UiAutomationSelectHint(IntPtr owningWindow, IUIAutomationSelectionItemPattern selectPattern, Rect boundingRectangle)
+        public UiAutomationSelectHint(IntPtr owningWindow, IUIAutomationElement automationElement, Rect boundingRectangle)
             : base(owningWindow, boundingRectangle)
         {
-            _selectPattern = selectPattern;
+            _automationElement = automationElement;
         }
 
         public override void Invoke()
         {
-            _selectPattern.Select();
+            UiaPatterns.GetCurrent<IUIAutomationSelectionItemPattern>(_automationElement, UIA_PatternIds.UIA_SelectionItemPatternId).Select();
         }
     }
 }

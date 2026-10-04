@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows;
+using HuntAndPeck.Services.Uia;
 using UIAutomationClient;
 
 namespace HuntAndPeck.Models
@@ -9,24 +10,26 @@ namespace HuntAndPeck.Models
     /// </summary>
     internal class UiAutomationExpandCollapseHint : Hint
     {
-        private readonly IUIAutomationExpandCollapsePattern _expandCollapsePattern;
+        private readonly IUIAutomationElement _automationElement;
 
-        public UiAutomationExpandCollapseHint(IntPtr owningWindow, IUIAutomationExpandCollapsePattern expandCollapsePattern, Rect boundingRectangle)
+        public UiAutomationExpandCollapseHint(IntPtr owningWindow, IUIAutomationElement automationElement, Rect boundingRectangle)
             : base(owningWindow, boundingRectangle)
         {
-            _expandCollapsePattern = expandCollapsePattern;
+            _automationElement = automationElement;
         }
 
         public override void Invoke()
         {
-            switch (_expandCollapsePattern.CurrentExpandCollapseState)
+            var expandCollapsePattern = UiaPatterns.GetCurrent<IUIAutomationExpandCollapsePattern>(
+                _automationElement, UIA_PatternIds.UIA_ExpandCollapsePatternId);
+            switch (expandCollapsePattern.CurrentExpandCollapseState)
             {
                 case ExpandCollapseState.ExpandCollapseState_Collapsed:
-                    _expandCollapsePattern.Expand();
+                    expandCollapsePattern.Expand();
                     break;
                 case ExpandCollapseState.ExpandCollapseState_Expanded:
                 case ExpandCollapseState.ExpandCollapseState_PartiallyExpanded:
-                    _expandCollapsePattern.Collapse();
+                    expandCollapsePattern.Collapse();
                     break;
             }
         }

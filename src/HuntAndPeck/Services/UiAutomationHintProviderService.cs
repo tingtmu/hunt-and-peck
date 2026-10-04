@@ -1,5 +1,4 @@
-﻿using HuntAndPeck.Extensions;
-using HuntAndPeck.Models;
+﻿using HuntAndPeck.Models;
 using HuntAndPeck.NativeMethods;
 using HuntAndPeck.Services.Interfaces;
 using HuntAndPeck.Services.Uia;
@@ -101,13 +100,13 @@ namespace HuntAndPeck.Services
             return true;
         }
 
-        private Task<HintSession> EnumForegroundAsync(Func<IntPtr, Rect, IUIAutomationElement, Hint> hintFactory)
+        private Task<HintSession> EnumForegroundAsync(HintFactoryMethod hintFactory)
         {
             var foregroundWindow = User32.GetForegroundWindow();
             return EnumAsync(foregroundWindow, hintFactory);
         }
 
-        private async Task<HintSession> EnumAsync(IntPtr hWnd, Func<IntPtr, Rect, IUIAutomationElement, Hint> hintFactory)
+        private async Task<HintSession> EnumAsync(IntPtr hWnd, HintFactoryMethod hintFactory)
         {
             if (hWnd == IntPtr.Zero)
             {
@@ -136,7 +135,7 @@ namespace HuntAndPeck.Services
         /// <param name="hWnd">The window to get hints from</param>
         /// <param name="hintFactory">The factory to use to create each hint in the session</param>
         /// <returns>A hint session, else null if the window could not be enumerated</returns>
-        private static HintSession EnumWindowHints(IntPtr hWnd, Func<IntPtr, Rect, IUIAutomationElement, Hint> hintFactory)
+        private static HintSession EnumWindowHints(IntPtr hWnd, HintFactoryMethod hintFactory)
         {
             var stopwatch = Stopwatch.StartNew();
 
@@ -149,15 +148,18 @@ namespace HuntAndPeck.Services
             }
             Rect windowBounds = rawWindowBounds;
 
-            var elements = TryEnumElements(hWnd);
-            if (elements == null)
+            var scan = UiAutomationElementScanner.TryScan(hWnd);
+            if (scan == null)
             {
                 return null;
             }
 
-            var hints = CreateHints(hWnd, windowBounds, elements, hintFactory);
+            var findMs = stopwatch.ElapsedMilliseconds;
+            var hints = CreateHints(hWnd, windowBounds, scan, hintFactory);
 
-            Trace.TraceInformation("Window {0}: {1} elements, {2} hints in {3} ms", hWnd, elements.Count, hints.Count, stopwatch.ElapsedMilliseconds);
+            Trace.TraceInformation(
+                "Window {0}: {1} elements, {2} hints in {3} ms (find {4} ms, {5} properties)",
+                hWnd, scan.Elements.Count, hints.Count, stopwatch.ElapsedMilliseconds, findMs, scan.Source);
             return new HintSession
             {
                 Hints = hints,
@@ -169,21 +171,17 @@ namespace HuntAndPeck.Services
         /// <summary>
         /// Creates a hint for each element, skipping (and counting) elements that vanish or fail mid-scan
         /// </summary>
-        private static List<Hint> CreateHints(
-            IntPtr hWnd,
-            Rect windowBounds,
-            List<IUIAutomationElement> elements,
-            Func<IntPtr, Rect, IUIAutomationElement, Hint> hintFactory)
+        private static List<Hint> CreateHints(IntPtr hWnd, Rect windowBounds, ElementScan scan, HintFactoryMethod hintFactory)
         {
             var result = new List<Hint>();
             var skipped = 0;
             var timeouts = 0;
 
-            foreach (var element in elements)
+            foreach (var element in scan.Elements)
             {
                 try
                 {
-                    var hint = CreateHint(hWnd, windowBounds, element, hintFactory);
+                    var hint = CreateHint(hWnd, windowBounds, element, scan.Source, hintFactory);
                     if (hint != null)
                     {
                         result.Add(hint);
@@ -206,7 +204,7 @@ namespace HuntAndPeck.Services
 
             if (skipped > 0)
             {
-                Trace.TraceInformation("Window {0}: {1} of {2} elements skipped (vanished or not responding)", hWnd, skipped, elements.Count);
+                Trace.TraceInformation("Window {0}: {1} of {2} elements skipped (vanished or not responding)", hWnd, skipped, scan.Elements.Count);
             }
             return result;
         }
@@ -218,67 +216,17 @@ namespace HuntAndPeck.Services
             IntPtr hWnd,
             Rect windowBounds,
             IUIAutomationElement element,
-            Func<IntPtr, Rect, IUIAutomationElement, Hint> hintFactory)
+            UiaPropertySource source,
+            HintFactoryMethod hintFactory)
         {
-            var boundingRectObject = element.CurrentBoundingRectangle;
-            if ((boundingRectObject.right <= boundingRectObject.left) || (boundingRectObject.bottom <= boundingRectObject.top))
+            // Physical screen pixels, same unit as the window bounds
+            var bounds = UiAutomationElementCache.ReadBounds(element, source);
+            Rect windowCoords;
+            if (!HintBounds.TryToWindowCoordinates(bounds.left, bounds.top, bounds.right, bounds.bottom, windowBounds, out windowCoords))
             {
                 return null;
             }
-
-            // UIA bounding rectangles are physical screen pixels, same unit as the window bounds
-            var niceRect = new Rect(new Point(boundingRectObject.left, boundingRectObject.top), new Point(boundingRectObject.right, boundingRectObject.bottom));
-            if (!niceRect.OverlapsWith(windowBounds))
-            {
-                // Outside the overlay, so its hint could never be seen
-                return null;
-            }
-
-            var windowCoords = niceRect.ScreenToWindowCoordinates(windowBounds);
-            return hintFactory(hWnd, windowCoords, element);
-        }
-
-        /// <summary>
-        /// Enumerates the automation elements from the given window
-        /// </summary>
-        /// <returns>All of the automation elements found, else null if the window could not be enumerated</returns>
-        private static List<IUIAutomationElement> TryEnumElements(IntPtr hWnd)
-        {
-            try
-            {
-                return EnumElements(hWnd);
-            }
-            catch (Exception ex) when (UiaErrors.IsTargetFailure(ex) || ex is ArgumentException)
-            {
-                // The window may have been closed between finding it and enumerating it, or be hung
-                Trace.TraceWarning("UI Automation enumeration failed for window {0}: {1}", hWnd, UiaErrors.Describe(ex));
-                return null;
-            }
-        }
-
-        private static List<IUIAutomationElement> EnumElements(IntPtr hWnd)
-        {
-            var automation = UiaAutomationFactory.ForCurrentThread();
-            var result = new List<IUIAutomationElement>();
-            var automationElement = automation.ElementFromHandle(hWnd);
-
-            var conditionControlView = automation.ControlViewCondition;
-            var conditionEnabled = automation.CreatePropertyCondition(UIA_PropertyIds.UIA_IsEnabledPropertyId, true);
-            var enabledControlCondition = automation.CreateAndCondition(conditionControlView, conditionEnabled);
-
-            var conditionOnScreen = automation.CreatePropertyCondition(UIA_PropertyIds.UIA_IsOffscreenPropertyId, false);
-            var condition = automation.CreateAndCondition(enabledControlCondition, conditionOnScreen);
-
-            var elementArray = automationElement.FindAll(TreeScope.TreeScope_Descendants, condition);
-            if (elementArray != null)
-            {
-                for (var i = 0; i < elementArray.Length; ++i)
-                {
-                    result.Add(elementArray.GetElement(i));
-                }
-            }
-
-            return result;
+            return hintFactory(hWnd, windowCoords, element, source);
         }
     }
 }

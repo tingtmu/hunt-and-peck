@@ -18,44 +18,38 @@ namespace HuntAndPeck.Services
     internal static class UiAutomationHintFactory
     {
         /// <summary>
-        /// Creates an actionable hint for the element
+        /// Creates an actionable hint for the element from its properties (see
+        /// <see cref="UiAutomationElementCache"/>); no cross-process call when they are cached. The hint
+        /// fetches the live pattern object when it is invoked.
         /// </summary>
         /// <returns>The created hint, else null if the element supports no usable pattern</returns>
-        public static Hint CreateHint(IntPtr owningWindow, Rect hintBounds, IUIAutomationElement automationElement)
+        public static Hint CreateHint(IntPtr owningWindow, Rect hintBounds, IUIAutomationElement automationElement, UiaPropertySource source)
         {
-            var invokePattern = (IUIAutomationInvokePattern)automationElement.GetCurrentPattern(UIA_PatternIds.UIA_InvokePatternId);
-            if (invokePattern != null)
+            var capabilities = UiAutomationElementCache.ReadCapabilities(automationElement, source);
+            switch (UiAutomationHintKindSelector.Select(capabilities))
             {
-                return new UiAutomationInvokeHint(owningWindow, invokePattern, hintBounds);
+                case UiAutomationHintKind.Invoke:
+                    return new UiAutomationInvokeHint(owningWindow, automationElement, hintBounds);
+                case UiAutomationHintKind.Toggle:
+                    return new UiAutomationToggleHint(owningWindow, automationElement, hintBounds);
+                case UiAutomationHintKind.Select:
+                    return new UiAutomationSelectHint(owningWindow, automationElement, hintBounds);
+                case UiAutomationHintKind.ExpandCollapse:
+                    return new UiAutomationExpandCollapseHint(owningWindow, automationElement, hintBounds);
+                case UiAutomationHintKind.Focus:
+                    return new UiAutomationFocusHint(owningWindow, automationElement, hintBounds);
+                default:
+                    return null;
             }
-
-            var togglePattern = (IUIAutomationTogglePattern)automationElement.GetCurrentPattern(UIA_PatternIds.UIA_TogglePatternId);
-            if (togglePattern != null)
-            {
-                return new UiAutomationToggleHint(owningWindow, togglePattern, hintBounds);
-            }
-
-            var selectPattern = (IUIAutomationSelectionItemPattern)automationElement.GetCurrentPattern(UIA_PatternIds.UIA_SelectionItemPatternId);
-            if (selectPattern != null)
-            {
-                return new UiAutomationSelectHint(owningWindow, selectPattern, hintBounds);
-            }
-
-            var expandCollapsePattern = (IUIAutomationExpandCollapsePattern)automationElement.GetCurrentPattern(UIA_PatternIds.UIA_ExpandCollapsePatternId);
-            if (expandCollapsePattern != null)
-            {
-                return new UiAutomationExpandCollapseHint(owningWindow, expandCollapsePattern, hintBounds);
-            }
-
-            return CreateFocusHint(owningWindow, hintBounds, automationElement);
         }
 
         /// <summary>
         /// Creates a debug hint listing every pattern the element supports.
         /// Note that the performance of this is *very* bad -- hence debug only.
         /// </summary>
+        /// <param name="source">Unused: the patterns are always probed live</param>
         /// <returns>A debug hint, else null if the element supports no pattern</returns>
-        public static DebugHint CreateDebugHint(IntPtr owningWindow, Rect hintBounds, IUIAutomationElement automationElement)
+        public static DebugHint CreateDebugHint(IntPtr owningWindow, Rect hintBounds, IUIAutomationElement automationElement, UiaPropertySource source)
         {
             var programmaticNames = new List<string>();
 
@@ -79,23 +73,6 @@ namespace HuntAndPeck.Services
             return programmaticNames.Count > 0
                 ? new DebugHint(owningWindow, hintBounds, programmaticNames)
                 : null;
-        }
-
-        private static Hint CreateFocusHint(IntPtr owningWindow, Rect hintBounds, IUIAutomationElement automationElement)
-        {
-            var valuePattern = (IUIAutomationValuePattern)automationElement.GetCurrentPattern(UIA_PatternIds.UIA_ValuePatternId);
-            if (valuePattern != null && valuePattern.CurrentIsReadOnly == 0)
-            {
-                return new UiAutomationFocusHint(owningWindow, automationElement, hintBounds);
-            }
-
-            var rangeValuePattern = (IUIAutomationRangeValuePattern)automationElement.GetCurrentPattern(UIA_PatternIds.UIA_RangeValuePatternId);
-            if (rangeValuePattern != null && rangeValuePattern.CurrentIsReadOnly == 0)
-            {
-                return new UiAutomationFocusHint(owningWindow, automationElement, hintBounds);
-            }
-
-            return null;
         }
     }
 }
