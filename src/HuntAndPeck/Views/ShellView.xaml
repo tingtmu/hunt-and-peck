@@ -19,6 +19,7 @@
                           IsCheckable="True"
                           IsChecked="{Binding StartWithWindows, Mode=OneWay}"
                           Command="{Binding ToggleStartWithWindowsCommand}"></MenuItem>
+                <MenuItem Header="About HAP" Command="{Binding ShowAboutCommand}"></MenuItem>
                 <Separator />
                 <MenuItem Header="Exit" Command="{Binding ExitCommand}"></MenuItem>
             </ContextMenu>

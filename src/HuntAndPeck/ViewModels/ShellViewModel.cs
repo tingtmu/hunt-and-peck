@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Security;
 using System.Threading.Tasks;
 using HuntAndPeck.Configuration;
@@ -19,6 +20,7 @@ namespace HuntAndPeck.ViewModels
         private readonly Action<OverlayViewModel> _showOverlay;
         private readonly Action<DebugOverlayViewModel> _showDebugOverlay;
         private readonly Action<OptionsViewModel> _showOptions;
+        private readonly Action<string> _showAbout;
         private readonly Action<string, Exception> _reportError;
         private readonly IHintLabelService _hintLabelService;
         private readonly IHintProviderService _hintProviderService;
@@ -40,6 +42,7 @@ namespace HuntAndPeck.ViewModels
             Action<OverlayViewModel> showOverlay,
             Action<DebugOverlayViewModel> showDebugOverlay,
             Action<OptionsViewModel> showOptions,
+            Action<string> showAbout,
             Action<string, Exception> reportError,
             IHintLabelService hintLabelService,
             IHintProviderService hintProviderService,
@@ -52,6 +55,7 @@ namespace HuntAndPeck.ViewModels
             _showOverlay = showOverlay;
             _showDebugOverlay = showDebugOverlay;
             _showOptions = showOptions;
+            _showAbout = showAbout;
             _reportError = reportError;
             _hintLabelService = hintLabelService;
             _hintProviderService = hintProviderService;
@@ -70,12 +74,24 @@ namespace HuntAndPeck.ViewModels
             keyListener.OnDebugHotKeyActivated += _keyListener_OnDebugHotKeyActivated;
 
             ShowOptionsCommand = new DelegateCommand(ShowOptions);
+            ShowAboutCommand = new DelegateCommand(ShowAbout);
             ExitCommand = new DelegateCommand(Exit);
             ToggleStartWithWindowsCommand = new DelegateCommand(ToggleStartWithWindows);
             RefreshStartWithWindows();
         }
 
+        /// <summary>
+        /// Title of the "About HAP" dialog
+        /// </summary>
+        public const string AboutTitle = "About HAP";
+
+        /// <summary>
+        /// Address of this fork's repository, shown in the "About HAP" dialog
+        /// </summary>
+        public const string RepositoryUrl = "https://github.com/tingtmu/hunt-and-peck";
+
         public DelegateCommand ShowOptionsCommand { get; }
+        public DelegateCommand ShowAboutCommand { get; }
         public DelegateCommand ExitCommand { get; }
         public DelegateCommand ToggleStartWithWindowsCommand { get; }
 
@@ -304,6 +320,37 @@ namespace HuntAndPeck.ViewModels
         {
             var vm = new OptionsViewModel(_settings, ApplyHotKeys, SuspendHotKeys);
             _showOptions(vm);
+        }
+
+        /// <summary>
+        /// Shows the "About HAP" text for the running release
+        /// </summary>
+        public void ShowAbout()
+        {
+            _showAbout(BuildAboutText(GetInformationalVersion()));
+        }
+
+        /// <summary>
+        /// Builds the "About HAP" text: release version, repository and upstream credit
+        /// </summary>
+        /// <param name="version">Release version, e.g. "1.8.2"</param>
+        public static string BuildAboutText(string version)
+        {
+            return string.Join(
+                Environment.NewLine,
+                "HuntAndPeck " + version,
+                RepositoryUrl,
+                "A fork of zsims/hunt-and-peck by Zachary Sims");
+        }
+
+        /// <summary>
+        /// The release version, taken from the assembly's AssemblyInformationalVersion (see SolutionInfo.cs)
+        /// </summary>
+        public static string GetInformationalVersion()
+        {
+            var assembly = typeof(ShellViewModel).Assembly;
+            var attribute = (AssemblyInformationalVersionAttribute)Attribute.GetCustomAttribute(assembly, typeof(AssemblyInformationalVersionAttribute));
+            return attribute?.InformationalVersion ?? assembly.GetName().Version.ToString();
         }
     }
 }

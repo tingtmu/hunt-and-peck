@@ -45,7 +45,11 @@ namespace HuntAndPeck.Services.Interfaces
         /// <summary>
         /// Invokes a hint from a session created by this service. Safe to fire and forget.
         /// </summary>
-        /// <returns>A task that completes when the invocation finished, failed or timed out; it never faults</returns>
-        Task InvokeHintAsync(Hint hint);
+        /// <returns>
+        /// A task that completes when the invocation finished, failed or timed out; it never faults. Its result
+        /// is false if the action failed in a way a mouse click on the element may fix (see
+        /// <see cref="Hint.CreateClickFallback"/>), else true.
+        /// </returns>
+        Task<bool> InvokeHintAsync(Hint hint);
     }
 }

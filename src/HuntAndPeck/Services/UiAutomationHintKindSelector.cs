@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UIAutomationClient;
 
 namespace HuntAndPeck.Services
@@ -26,6 +27,37 @@ namespace HuntAndPeck.Services
         public static bool IsLegacyActionControlType(int controlTypeId)
         {
             return s_legacyActionControlTypes.Contains(controlTypeId);
+        }
+
+        /// <summary>UI Automation FrameworkId of Qt (Qt Widgets and Qt Quick) providers</summary>
+        public const string QtFrameworkId = "Qt";
+
+        /// <summary>
+        /// Control types of Qt item view cells (QListView, QTreeView, QTableView items). Their Invoke and
+        /// SelectionItem actions don't emit the view's clicked/activated signals that apps act on, e.g. LINE's
+        /// chat list opens a chat on click only.
+        /// </summary>
+        private static readonly HashSet<int> s_qtItemControlTypes = new HashSet<int>
+        {
+            UIA_ControlTypeIds.UIA_ListItemControlTypeId,
+            UIA_ControlTypeIds.UIA_TreeItemControlTypeId,
+            UIA_ControlTypeIds.UIA_DataItemControlTypeId,
+        };
+
+        /// <summary>True if the framework is Qt; only then does <see cref="PrefersClick"/> need the control type</summary>
+        public static bool IsQt(string frameworkId)
+        {
+            return string.Equals(frameworkId, QtFrameworkId, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// True if an actionable element should be clicked with the mouse rather than through its UI Automation
+        /// pattern: a Qt item view cell (see <see cref="s_qtItemControlTypes"/>). Other Qt elements, e.g.
+        /// buttons, keep their pattern action.
+        /// </summary>
+        public static bool PrefersClick(string frameworkId, int controlTypeId)
+        {
+            return IsQt(frameworkId) && s_qtItemControlTypes.Contains(controlTypeId);
         }
 
         /// <summary>

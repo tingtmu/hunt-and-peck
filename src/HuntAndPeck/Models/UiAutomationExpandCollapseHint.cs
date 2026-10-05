@@ -18,6 +18,10 @@ namespace HuntAndPeck.Models
             _automationElement = automationElement;
         }
 
+        public override bool ClicksOnFailure => true;
+
+        public override Hint CreateClickHint() => new UiAutomationClickHint(OwningWindow, _automationElement, BoundingRectangle);
+
         public override void Invoke()
         {
             var expandCollapsePattern = UiaPatterns.GetCurrent<IUIAutomationExpandCollapsePattern>(

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
   <!-- Keep version in sync with SolutionInfo.cs -->
-  <assemblyIdentity version="1.8.1.0" name="HuntAndPeck" type="win32" />
+  <assemblyIdentity version="1.8.2.0" name="HuntAndPeck" type="win32" />
 
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
     <security>

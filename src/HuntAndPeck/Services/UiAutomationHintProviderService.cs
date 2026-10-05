@@ -67,21 +67,32 @@ namespace HuntAndPeck.Services
         /// <remarks>
         /// Target failures (element gone, app hung/closed) and timeouts are logged and do not fault the task
         /// </remarks>
-        public async Task InvokeHintAsync(Hint hint)
+        public async Task<bool> InvokeHintAsync(Hint hint)
         {
             try
             {
-                await _executor.RunAsync(() => InvokeOnWorker(hint), InvocationTimeout).ConfigureAwait(false);
+                return await _executor.RunAsync(() => InvokeOnWorker(hint), InvocationTimeout).ConfigureAwait(false);
             }
             catch (Exception ex) when (IsShutdown(ex))
             {
                 // Checked first: ObjectDisposedException is also an InvalidOperationException
                 Trace.TraceInformation("Invoking {0} skipped, UI Automation is shutting down: {1}", hint.GetType().Name, ex.Message);
+                return true;
             }
-            catch (Exception ex) when (UiaErrors.IsTargetFailure(ex))
+            catch (Exception ex) when (UiaErrors.IsTargetFailure(ex) || IsActionRefused(ex))
             {
                 Trace.TraceWarning("Invoking {0} in window {1} failed: {2}", hint.GetType().Name, hint.OwningWindow, UiaErrors.Describe(ex));
+                return !UiaErrors.IsClickFallbackFailure(ex);
             }
+        }
+
+        /// <summary>
+        /// True for HRESULTs the CLR maps to exceptions that are not target failures but that a provider may
+        /// return for an action: E_NOTIMPL (action not implemented), E_ACCESSDENIED (e.g. an elevated target)
+        /// </summary>
+        private static bool IsActionRefused(Exception ex)
+        {
+            return ex is NotImplementedException || ex is UnauthorizedAccessException;
         }
 
         /// <summary>

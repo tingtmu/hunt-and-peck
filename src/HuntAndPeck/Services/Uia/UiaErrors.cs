@@ -37,6 +37,20 @@ namespace HuntAndPeck.Services.Uia
         }
 
         /// <summary>
+        /// True if a failed UI Automation action may be retried as a mouse click on the element: the provider
+        /// refused or failed the action (e.g. Chrome's extension buttons return E_FAIL for Expand), but the
+        /// element still exists and the app answers. Includes E_NOTIMPL (<see cref="NotImplementedException"/>),
+        /// an action the provider does not implement. Not for a vanished element (the click would hit whatever
+        /// is there now) or a hung app.
+        /// </summary>
+        public static bool IsClickFallbackFailure(Exception ex)
+        {
+            return (IsTargetFailure(ex) || ex is NotImplementedException)
+                && !IsTimeout(ex)
+                && ex.HResult != ElementNotAvailable;
+        }
+
+        /// <summary>
         /// True if the target app did not answer in time (UIA transaction/connection timeout)
         /// </summary>
         public static bool IsTimeout(Exception ex)

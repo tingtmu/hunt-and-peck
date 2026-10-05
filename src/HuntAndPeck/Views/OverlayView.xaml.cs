@@ -1,4 +1,5 @@
 ﻿using System.Windows.Input;
+using HuntAndPeck.ViewModels;
 
 namespace HuntAndPeck.Views
 {
@@ -21,6 +22,15 @@ namespace HuntAndPeck.Views
             if (e.Key == Key.Escape)
             {
                 Close();
+                return;
+            }
+
+            // Runs before the key's text reaches the match box: Shift+letter forces a mouse click. The real Shift
+            // state, not the letter's case, so Caps Lock doesn't force clicks.
+            var vm = DataContext as OverlayViewModel;
+            if (vm != null)
+            {
+                vm.ForceClick = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
             }
         }
     }

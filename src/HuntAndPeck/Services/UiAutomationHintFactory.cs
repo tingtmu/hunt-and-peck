@@ -20,13 +20,27 @@ namespace HuntAndPeck.Services
         /// <summary>
         /// Creates an actionable hint for the element from its properties (see
         /// <see cref="UiAutomationElementCache"/>); no cross-process call when they are cached. The hint
-        /// fetches the live pattern object when it is invoked.
+        /// fetches the live pattern object when it is invoked. Elements whose pattern action is known to do
+        /// nothing (<see cref="UiAutomationHintKindSelector.PrefersClick"/>) get a mouse click hint instead.
         /// </summary>
         /// <returns>The created hint, else null if the element supports no usable pattern</returns>
         public static Hint CreateHint(IntPtr owningWindow, Rect hintBounds, IUIAutomationElement automationElement, UiaPropertySource source)
         {
             var capabilities = UiAutomationElementCache.ReadCapabilities(automationElement, source);
-            return Create(UiAutomationHintKindSelector.Select(capabilities), owningWindow, hintBounds, automationElement);
+            var kind = UiAutomationHintKindSelector.Select(capabilities);
+            if (kind != UiAutomationHintKind.None && PrefersClick(automationElement, source))
+            {
+                return new UiAutomationClickHint(owningWindow, automationElement, hintBounds);
+            }
+            return Create(kind, owningWindow, hintBounds, automationElement);
+        }
+
+        /// <remarks>Reads the control type only for Qt elements: a live read costs a cross-process call</remarks>
+        private static bool PrefersClick(IUIAutomationElement automationElement, UiaPropertySource source)
+        {
+            var frameworkId = UiAutomationElementCache.ReadFrameworkId(automationElement, source);
+            return UiAutomationHintKindSelector.IsQt(frameworkId)
+                && UiAutomationHintKindSelector.PrefersClick(frameworkId, UiAutomationElementCache.ReadControlType(automationElement, source));
         }
 
         /// <summary>
