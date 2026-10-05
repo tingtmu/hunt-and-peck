@@ -36,6 +36,19 @@ namespace HuntAndPeck.Models
         public virtual bool InvokeAfterOverlayCloses => false;
 
         /// <summary>
+        /// A hint that clicks the same element with the mouse, for a forced click (Shift) and, if
+        /// <see cref="ClicksOnFailure"/>, when this hint's action fails; null if there is none (e.g. this hint
+        /// already clicks)
+        /// </summary>
+        public virtual Hint CreateClickHint() => null;
+
+        /// <summary>
+        /// True if a failed action may be retried as a click (<see cref="CreateClickHint"/>). False where a
+        /// click could do something else than the action, e.g. change a slider's value instead of focusing it.
+        /// </summary>
+        public virtual bool ClicksOnFailure => false;
+
+        /// <summary>
         /// Invokes the hint
         /// </summary>
         public abstract void Invoke();

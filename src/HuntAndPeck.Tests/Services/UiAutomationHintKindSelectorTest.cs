@@ -72,6 +72,25 @@ namespace HuntAndPeck.Tests.Services
             Assert.Equal(expected, UiAutomationHintKindSelector.IsLegacyActionControlType(controlType));
         }
 
+        [Theory]
+        [InlineData("Qt", 50007, true)]       // ListItem
+        [InlineData("Qt", 50024, true)]       // TreeItem
+        [InlineData("Qt", 50029, true)]       // DataItem
+        [InlineData("Qt", 50026, false)]      // Group: e.g. LINE's buttons, whose Invoke works
+        [InlineData("Qt", 50025, false)]      // Custom
+        [InlineData("Qt", 50033, false)]      // Pane
+        [InlineData("Qt", 50000, false)]      // Button
+        [InlineData("Qt", 50002, false)]      // CheckBox
+        [InlineData("Chrome", 50007, false)]  // ListItem
+        [InlineData("WPF", 50007, false)]     // ListItem
+        [InlineData(null, 50007, false)]      // ListItem
+        [InlineData("", 50007, false)]        // ListItem
+        [InlineData("qt", 50007, false)]      // ListItem: FrameworkId match is ordinal
+        public void PrefersClick_OnlyForQtItemViewCells(string frameworkId, int controlType, bool expected)
+        {
+            Assert.Equal(expected, UiAutomationHintKindSelector.PrefersClick(frameworkId, controlType));
+        }
+
         [Fact]
         public void LegacyDefaultAction_IsIgnored_WhenNotAllowed()
         {

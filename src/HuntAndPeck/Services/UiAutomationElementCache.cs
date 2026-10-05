@@ -33,8 +33,8 @@ namespace HuntAndPeck.Services
         /// </summary>
         /// <param name="automation">The automation object of the calling (worker) thread</param>
         /// <param name="includeLegacy">
-        /// Also cache what the LegacyIAccessible fallback needs (<see cref="ReadCapabilities"/> with includeLegacy,
-        /// <see cref="ReadControlType"/>); bars mode only, so the normal request stays as small as before
+        /// Also cache what the LegacyIAccessible fallback needs (<see cref="ReadCapabilities"/> with includeLegacy);
+        /// bars mode only, so the normal request stays small
         /// </param>
         public static IUIAutomationCacheRequest CreateRequest(IUIAutomation automation, bool includeLegacy = false)
         {
@@ -51,21 +51,30 @@ namespace HuntAndPeck.Services
             }
             request.AddProperty(UIA_PropertyIds.UIA_ValueIsReadOnlyPropertyId);
             request.AddProperty(UIA_PropertyIds.UIA_RangeValueIsReadOnlyPropertyId);
+            request.AddProperty(UIA_PropertyIds.UIA_ControlTypePropertyId);
+            request.AddProperty(UIA_PropertyIds.UIA_FrameworkIdPropertyId);
             if (includeLegacy)
             {
                 request.AddProperty(UIA_PropertyIds.UIA_IsLegacyIAccessiblePatternAvailablePropertyId);
                 request.AddProperty(UIA_PropertyIds.UIA_LegacyIAccessibleDefaultActionPropertyId);
-                request.AddProperty(UIA_PropertyIds.UIA_ControlTypePropertyId);
             }
             return request;
         }
 
         /// <summary>
-        /// Reads the element's control type id (UIA_*ControlTypeId); cached only by a request with includeLegacy
+        /// Reads the element's control type id (UIA_*ControlTypeId)
         /// </summary>
         public static int ReadControlType(IUIAutomationElement element, UiaPropertySource source)
         {
             return source == UiaPropertySource.Cached ? element.CachedControlType : element.CurrentControlType;
+        }
+
+        /// <summary>
+        /// Reads the element's UI framework, e.g. "Qt", "Chrome", "WPF"; null or empty if the provider gives none
+        /// </summary>
+        public static string ReadFrameworkId(IUIAutomationElement element, UiaPropertySource source)
+        {
+            return source == UiaPropertySource.Cached ? element.CachedFrameworkId : element.CurrentFrameworkId;
         }
 
         /// <summary>

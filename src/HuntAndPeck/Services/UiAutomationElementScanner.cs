@@ -28,7 +28,7 @@ namespace HuntAndPeck.Services
     internal static class UiAutomationElementScanner
     {
         /// <param name="hWnd">The window</param>
-        /// <param name="includeLegacy">Also cache the LegacyIAccessible properties and control type (bars mode)</param>
+        /// <param name="includeLegacy">Also cache the LegacyIAccessible properties (bars mode)</param>
         /// <returns>The elements found, else null if the window could not be enumerated</returns>
         public static ElementScan TryScan(IntPtr hWnd, bool includeLegacy = false)
         {

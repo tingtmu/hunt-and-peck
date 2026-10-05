@@ -18,6 +18,8 @@ namespace HuntAndPeck.Models
             _automationElement = automationElement;
         }
 
+        public override Hint CreateClickHint() => new UiAutomationClickHint(OwningWindow, _automationElement, BoundingRectangle);
+
         public override void Invoke()
         {
             UiaPatterns.GetCurrent<IUIAutomationTogglePattern>(_automationElement, UIA_PatternIds.UIA_TogglePatternId).Toggle();

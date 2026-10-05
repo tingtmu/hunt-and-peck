@@ -10,7 +10,7 @@ This is the 1.8 build (a fork of zsims/hunt-and-peck by Zachary Sims): https://g
 
 https://github.com/tingtmu/hunt-and-peck/releases/latest
 
-Download `HuntAndPeck-1.8.1.zip` (portable, no installer), unzip it anywhere and run `hap.exe`. To update an
+Download `HuntAndPeck-1.8.2.zip` (portable, no installer), unzip it anywhere and run `hap.exe`. To update an
 existing install, unzip over the old folder. `SHA256SUMS.txt` is there to verify the download.
 
 # Configuration
@@ -52,6 +52,8 @@ Where things live:
       launch the app).
 3. An overlay window will be displayed, type any of the hint characters you see. What you type shows in a
    small box at the bottom of the screen, in light or dark colours following the Windows app theme.
+    - Hold `Shift` while typing the last letter to click the element with the mouse instead (e.g. type
+      `d` then `Shift + D`). Use it for an element that ignores its UI Automation action.
 
 Alternatively, Hunt and Peck can be launched via the command-line or AutoHotKey by specifying `/hint`:
 ```
@@ -64,4 +66,7 @@ hap.exe /tray
 ```
 
 # Supported Elements
-Only UI Automation elements with "Invoke" patterns are supported (and displayed).
+Elements with a UI Automation action (Invoke, Toggle, Select, Expand/Collapse) or an editable value get
+hints. If an element's action fails (e.g. some Chrome toolbar buttons), HuntAndPeck clicks it with the mouse
+instead. List, tree and table items in Qt apps (e.g. LINE's chat list), whose UI Automation action does
+nothing, are always clicked with the mouse.

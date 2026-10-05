@@ -211,7 +211,7 @@ namespace HuntAndPeck.Tests.Services
                 return Result;
             }
 
-            public Task InvokeHintAsync(Hint hint) => Task.CompletedTask;
+            public Task<bool> InvokeHintAsync(Hint hint) => Task.FromResult(true);
         }
     }
 }

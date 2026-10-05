@@ -290,7 +290,7 @@ namespace HuntAndPeck.Tests.ViewModels
 
             public Task<HintSession> EnumBarHintsAsync(IReadOnlyList<IntPtr> windows, System.Windows.Rect monitor) => EnumHintsAsync();
 
-            public Task InvokeHintAsync(Hint hint) => Task.CompletedTask;
+            public Task<bool> InvokeHintAsync(Hint hint) => Task.FromResult(true);
         }
 
         private sealed class FakeKeyListener : IKeyListenerService

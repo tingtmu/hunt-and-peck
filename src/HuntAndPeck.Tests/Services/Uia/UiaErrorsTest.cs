@@ -44,6 +44,28 @@ namespace HuntAndPeck.Tests.Services.Uia
         }
 
         [Fact]
+        public void IsClickFallbackFailure_TrueForFailedActionOnLiveElement()
+        {
+            Assert.True(UiaErrors.IsClickFallbackFailure(new COMException("failed", unchecked((int)0x80004005))));
+            Assert.True(UiaErrors.IsClickFallbackFailure(new InvalidOperationException()));
+            Assert.True(UiaErrors.IsClickFallbackFailure(new InvalidCastException()));
+            // E_NOTIMPL: the provider does not implement the action
+            Assert.True(UiaErrors.IsClickFallbackFailure(Marshal.GetExceptionForHR(unchecked((int)0x80004001))));
+        }
+
+        [Fact]
+        public void IsClickFallbackFailure_FalseForVanishedOrHungTargetsAndOtherErrors()
+        {
+            Assert.False(UiaErrors.IsClickFallbackFailure(new COMException("gone", UiaErrors.ElementNotAvailable)));
+            Assert.False(UiaErrors.IsClickFallbackFailure(new TimeoutException()));
+            Assert.False(UiaErrors.IsClickFallbackFailure(Marshal.GetExceptionForHR(UiaErrors.Timeout)));
+            Assert.False(UiaErrors.IsClickFallbackFailure(new NullReferenceException()));
+            Assert.False(UiaErrors.IsClickFallbackFailure(new ArgumentException()));
+            // E_ACCESSDENIED, e.g. an elevated target: SendInput to it is blocked too (UIPI)
+            Assert.False(UiaErrors.IsClickFallbackFailure(new UnauthorizedAccessException()));
+        }
+
+        [Fact]
         public void Describe_IncludesHResult()
         {
             var text = UiaErrors.Describe(new COMException("gone", UiaErrors.ElementNotAvailable));
