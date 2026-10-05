@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using HuntAndPeck.Configuration;
@@ -170,7 +171,7 @@ namespace HuntAndPeck.Tests.ViewModels
             FakeHintProvider provider, FakeKeyListener keys, Action<OverlayViewModel> showOverlay, Action<string, Exception> reportError)
         {
             return new ShellViewModel(
-                showOverlay, vm => { }, vm => { }, reportError,
+                showOverlay, vm => { }, vm => { }, text => { }, reportError,
                 new HintLabelService(), provider, null, keys,
                 new StartupRegistrationService(new FakeRegistryRunKey(), ExePath, path => true),
                 new FakeUserSettings(), message => { });
@@ -179,7 +180,7 @@ namespace HuntAndPeck.Tests.ViewModels
         private static ShellViewModel CreateShell(FakeRegistryRunKey registry, List<string> warnings)
         {
             return new ShellViewModel(
-                vm => { }, vm => { }, vm => { }, (context, ex) => { },
+                vm => { }, vm => { }, vm => { }, text => { }, (context, ex) => { },
                 new HintLabelService(), new FakeHintProvider(), null, new FakeKeyListener(),
                 new StartupRegistrationService(registry, ExePath, path => true),
                 new FakeUserSettings(), warnings.Add);
@@ -188,10 +189,40 @@ namespace HuntAndPeck.Tests.ViewModels
         private static ShellViewModel CreateShell(FakeKeyListener keys, FakeUserSettings settings, Action<OptionsViewModel> showOptions)
         {
             return new ShellViewModel(
-                vm => { }, vm => { }, showOptions, (context, ex) => { },
+                vm => { }, vm => { }, showOptions, text => { }, (context, ex) => { },
                 new HintLabelService(), new FakeHintProvider(), null, keys,
                 new StartupRegistrationService(new FakeRegistryRunKey(), ExePath, path => true),
                 settings, message => { });
+        }
+
+        [Fact]
+        public void BuildAboutText_HasVersionRepositoryAndUpstreamCredit()
+        {
+            var text = ShellViewModel.BuildAboutText("9.8.7");
+
+            Assert.Contains("HuntAndPeck 9.8.7", text);
+            Assert.Contains("https://github.com/tingtmu/hunt-and-peck", text);
+            Assert.Contains("A fork of zsims/hunt-and-peck by Zachary Sims", text);
+        }
+
+        [Fact]
+        public void ShowAboutCommand_ShowsAboutTextWithAssemblyInformationalVersion_Once()
+        {
+            var assembly = typeof(ShellViewModel).Assembly;
+            var version = ((AssemblyInformationalVersionAttribute)Attribute.GetCustomAttribute(
+                assembly, typeof(AssemblyInformationalVersionAttribute))).InformationalVersion;
+            var shown = new List<string>();
+            var shell = new ShellViewModel(
+                vm => { }, vm => { }, vm => { }, shown.Add, (context, ex) => { },
+                new HintLabelService(), new FakeHintProvider(), null, new FakeKeyListener(),
+                new StartupRegistrationService(new FakeRegistryRunKey(), ExePath, path => true),
+                new FakeUserSettings(), message => { });
+
+            shell.ShowAboutCommand.Execute(null);
+
+            var text = Assert.Single(shown);
+            Assert.Contains("HuntAndPeck " + version, text);
+            Assert.Contains(ShellViewModel.RepositoryUrl, text);
         }
 
         [Fact]
@@ -251,7 +282,7 @@ namespace HuntAndPeck.Tests.ViewModels
             var warnings = new List<string>();
             OptionsViewModel options = null;
             var shell = new ShellViewModel(
-                vm => { }, vm => { }, vm => options = vm, (context, ex) => { },
+                vm => { }, vm => { }, vm => options = vm, text => { }, (context, ex) => { },
                 new HintLabelService(), new FakeHintProvider(), null, keys,
                 new StartupRegistrationService(new FakeRegistryRunKey(), ExePath, path => true),
                 new FakeUserSettings(), warnings.Add);

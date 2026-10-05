@@ -87,6 +87,11 @@ namespace HuntAndPeck
             view.ShowDialog();
         }
 
+        private static void ShowAbout(string text)
+        {
+            MessageBox.Show(text, ShellViewModel.AboutTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
         /// <summary>
         /// Shows the overlay for a headless (/hint, /tray) invocation, then shuts down once it closes and the
         /// selected hint has been invoked; shuts down straight away if there is nothing to show
@@ -163,6 +168,7 @@ namespace HuntAndPeck
                 ShowOverlay,
                 ShowDebugOverlay,
                 ShowOptions,
+                ShowAbout,
                 _exceptionHandlers.Report,
                 _hintLabelService,
                 _hintProviderService,
