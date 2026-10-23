@@ -129,6 +129,7 @@
     <Compile Include="Services\HintFactoryMethod.cs" />
     <Compile Include="Services\HintLabelService.cs" />
     <Compile Include="Services\HintOrdering.cs" />
+    <Compile Include="Services\HoverScroller.cs" />
     <Compile Include="Services\MenuPopupWatcher.cs" />
     <Compile Include="Services\HotKeyTransaction.cs" />
     <Compile Include="Services\Interfaces\HotKey.cs" />

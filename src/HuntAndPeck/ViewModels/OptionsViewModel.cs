@@ -64,6 +64,7 @@ namespace HuntAndPeck.ViewModels
             new KeyValuePair<string, string>("Shift + last letter", "Left click (for elements that ignore their action)"),
             new KeyValuePair<string, string>("Ctrl + last letter", "Right-click (context menu)"),
             new KeyValuePair<string, string>("Ctrl + Shift + last letter", "Double-click (e.g. open a file)"),
+            new KeyValuePair<string, string>("Alt + last letter", "Hover: move the mouse there; then arrows / PgUp / PgDn scroll under it, any other key stops"),
             new KeyValuePair<string, string>("In a menu", "Letters pick an item, Esc hides the hints, other keys go to the menu")
         };
 

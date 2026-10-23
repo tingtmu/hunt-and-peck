@@ -1,8 +1,14 @@
 # Changelog
 
-## Unreleased
+## 1.10.0 (2026-10-23)
 
-- Options: an "Overlay keys" section lists the keys that work with the hints shown (Shift / Ctrl / Ctrl+Shift
+### Mouse actions
+- **Alt + last letter** hovers: the mouse moves to the element and stays there (tooltips, hover menus). Then the
+  arrow keys, PgUp and PgDn scroll the pane under the mouse with the mouse wheel, whichever window has focus.
+  Esc or any other key stops scrolling (and goes through as usual), so Alt+; still works.
+
+### Options
+- An "Overlay keys" section lists the keys that work with the hints shown (Shift / Ctrl / Ctrl+Shift / Alt
   with the last letter, Backspace, Esc, menu keys). The window has a fixed size and scrolls; OK and Cancel stay visible.
 
 ## 1.9.0 (2026-10-23)

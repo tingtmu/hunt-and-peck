@@ -1,16 +1,16 @@
-# HuntAndPeck 1.9
+# HuntAndPeck 1.10
 
 Simple vimium/vimperator style navigation for Windows applications based on the UI Automation framework. In essence, it works the same as screen readers or accessibility programs but with the goal of making any Windows program faster to use.
 
 It works for any Windows program that exposes UI Automation (Win32, WinForms, WPF, WinUI, browsers).
 
-This is the 1.9 build (a fork of zsims/hunt-and-peck by Zachary Sims): https://github.com/tingtmu/hunt-and-peck
+This is the 1.10 build (a fork of zsims/hunt-and-peck by Zachary Sims): https://github.com/tingtmu/hunt-and-peck
 
 # Download
 
 https://github.com/tingtmu/hunt-and-peck/releases/latest
 
-Download `HuntAndPeck-1.9.0.zip` (portable, no installer), unzip it anywhere and run `hap.exe`. To update an
+Download `HuntAndPeck-1.10.0.zip` (portable, no installer), unzip it anywhere and run `hap.exe`. To update an
 existing install, unzip over the old folder. `SHA256SUMS.txt` is there to verify the download.
 
 # Configuration
@@ -66,6 +66,7 @@ Where things live:
       | `Shift` | left click, for an element that ignores its UI Automation action |
       | `Ctrl` | right-click (context menu) |
       | `Ctrl + Shift` | double-click (e.g. open a file) |
+      | `Alt` | hover: the mouse moves there and stays (tooltips, hover menus). Afterwards the arrow keys, `PgUp` and `PgDn` scroll the pane under the mouse, whichever window has focus, until `Esc` or any other key |
     - Menus: when a hint opens a menu or dropdown (a right-click menu, a submenu), its hints appear on their
       own and the menu stays open. Letters pick an item, `Esc` hides the hints, and any other key (arrows,
       `Enter`) goes to the menu as usual.

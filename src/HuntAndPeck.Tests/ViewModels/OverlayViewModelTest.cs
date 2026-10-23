@@ -258,13 +258,74 @@ namespace HuntAndPeck.Tests.ViewModels
         }
 
         [Theory]
-        [InlineData(false, false, null)]
-        [InlineData(true, false, MouseAction.LeftClick)]
-        [InlineData(false, true, MouseAction.RightClick)]
-        [InlineData(true, true, MouseAction.DoubleClick)]
-        public void ForcedActionFor_Modifiers(bool shift, bool ctrl, MouseAction? expected)
+        [InlineData(false, false, false, null)]
+        [InlineData(true, false, false, MouseAction.LeftClick)]
+        [InlineData(false, true, false, MouseAction.RightClick)]
+        [InlineData(true, true, false, MouseAction.DoubleClick)]
+        [InlineData(false, false, true, MouseAction.Hover)]
+        [InlineData(true, false, true, MouseAction.Hover)]
+        [InlineData(false, true, true, MouseAction.RightClick)]
+        [InlineData(true, true, true, MouseAction.DoubleClick)]
+        public void ForcedActionFor_Modifiers(bool shift, bool ctrl, bool alt, MouseAction? expected)
         {
-            Assert.Equal(expected, OverlayViewModel.ForcedActionFor(shift, ctrl));
+            Assert.Equal(expected, OverlayViewModel.ForcedActionFor(shift, ctrl, alt));
+        }
+
+        [Fact]
+        public void Match_ForcedHoverSucceeded_SetsHovered()
+        {
+            var original = new FallbackFakeHint("original", new ClickFakeHint());
+            var recorder = new EventRecorder();
+            var vm = CreateViewModel(original, recorder, hint => Task.FromResult(true));
+            vm.ForcedAction = MouseAction.Hover;
+
+            vm.MatchString = vm.Hints[0].Label;
+
+            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            Assert.True(vm.Hovered);
+            Assert.Equal(new[] { MouseAction.Hover }, original.RequestedActions);
+        }
+
+        [Fact]
+        public void Match_ForcedHoverFailed_IsNotHoveredAndDoesNotClick()
+        {
+            var original = new FallbackFakeHint("original", new ClickFakeHint());
+            var recorder = new EventRecorder();
+            var vm = CreateViewModel(original, recorder, hint => Task.FromResult(false));
+            vm.ForcedAction = MouseAction.Hover;
+
+            vm.MatchString = vm.Hints[0].Label;
+
+            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            Assert.False(vm.Hovered);
+            Assert.Equal(new List<string> { "close", "invoke:click" }, recorder.Snapshot());
+        }
+
+        [Fact]
+        public void Match_ForcedHoverOnHintThatCannotClick_RunsItsActionAndIsNotHovered()
+        {
+            var recorder = new EventRecorder();
+            var vm = CreateViewModel(new ClickFakeHint(), recorder, hint => Task.FromResult(true));
+            vm.ForcedAction = MouseAction.Hover;
+
+            vm.MatchString = vm.Hints[0].Label;
+
+            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            Assert.False(vm.Hovered);
+            Assert.Equal(new List<string> { "close", "invoke:click" }, recorder.Snapshot());
+        }
+
+        [Fact]
+        public void Match_ForcedRightClick_IsNotHovered()
+        {
+            var original = new FallbackFakeHint("original", new ClickFakeHint());
+            var vm = CreateViewModel(original, new EventRecorder(), hint => Task.FromResult(true));
+            vm.ForcedAction = MouseAction.RightClick;
+
+            vm.MatchString = vm.Hints[0].Label;
+
+            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            Assert.False(vm.Hovered);
         }
 
         [Fact]

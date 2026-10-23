@@ -178,12 +178,150 @@ namespace HuntAndPeck.Tests.ViewModels
             }
         }
 
+        [Fact]
+        public void Hover_StartsScrolling_OnceTheInvocationCompletes()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var invocation = new TaskCompletionSource<bool>();
+                var provider = new FakeHintProvider { Invoke = hint => invocation.Task };
+                var keys = new FakeKeyListener();
+                var errors = new List<Exception>();
+                var scrolls = new List<FakeScroll>();
+                CreateShell(provider, keys, vm => Choose(vm, MouseAction.Hover), (context, ex) => errors.Add(ex), startHoverScroll: () => StartScroll(scrolls));
+
+                keys.Press();
+                provider.Pending[0].SetResult(OneHintSession());
+
+                Assert.Empty(scrolls);
+                invocation.SetResult(true);
+                Assert.True(SpinWait.SpinUntil(() => scrolls.Count == 1, TimeSpan.FromSeconds(5)));
+                Assert.Single(scrolls);
+                Assert.Empty(errors);
+            }
+        }
+
+        [Fact]
+        public void Hover_InvocationFails_DoesNotStartScrolling()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var provider = new FakeHintProvider { Invoke = hint => Task.FromResult(false) };
+                var keys = new FakeKeyListener();
+                var errors = new List<Exception>();
+                var scrolls = new List<FakeScroll>();
+                CreateShell(provider, keys, vm => Choose(vm, MouseAction.Hover), (context, ex) => errors.Add(ex), startHoverScroll: () => StartScroll(scrolls));
+
+                keys.Press();
+                provider.Pending[0].SetResult(OneHintSession());
+
+                Assert.Empty(scrolls);
+                Assert.Empty(errors);
+            }
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData(MouseAction.RightClick)]
+        public void NonHoverAction_DoesNotStartScrolling(MouseAction? action)
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var provider = new FakeHintProvider();
+                var keys = new FakeKeyListener();
+                var errors = new List<Exception>();
+                var scrolls = new List<FakeScroll>();
+                CreateShell(provider, keys, vm => Choose(vm, action), (context, ex) => errors.Add(ex), startHoverScroll: () => StartScroll(scrolls));
+
+                keys.Press();
+                provider.Pending[0].SetResult(OneHintSession());
+
+                Assert.Empty(scrolls);
+                Assert.Empty(errors);
+            }
+        }
+
+        [Fact]
+        public void SecondHover_DisposesTheFirstScroller()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var provider = new FakeHintProvider();
+                var keys = new FakeKeyListener();
+                var errors = new List<Exception>();
+                var scrolls = new List<FakeScroll>();
+                CreateShell(provider, keys, vm => Choose(vm, MouseAction.Hover), (context, ex) => errors.Add(ex), startHoverScroll: () => StartScroll(scrolls));
+
+                keys.Press();
+                provider.Pending[0].SetResult(OneHintSession());
+                var first = Assert.Single(scrolls);
+                Assert.Equal(0, first.Disposals);
+
+                keys.Press();
+                provider.Pending[1].SetResult(OneHintSession());
+
+                Assert.Equal(2, scrolls.Count);
+                Assert.Equal(1, first.Disposals);
+                Assert.Equal(0, scrolls[1].Disposals);
+                Assert.Empty(errors);
+            }
+        }
+
+        [Fact]
+        public void Hover_HookCannotBeInstalled_IsNotReportedAsAnError()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var provider = new FakeHintProvider();
+                var keys = new FakeKeyListener();
+                var errors = new List<Exception>();
+                var starts = 0;
+                CreateShell(provider, keys, vm => Choose(vm, MouseAction.Hover), (context, ex) => errors.Add(ex), startHoverScroll: () =>
+                {
+                    starts++;
+                    throw new InvalidOperationException("no hook");
+                });
+
+                keys.Press();
+                provider.Pending[0].SetResult(OneHintSession());
+
+                Assert.Equal(1, starts);
+                Assert.Empty(errors);
+            }
+        }
+
+        private static HintSession OneHintSession() => new HintSession { Hints = new List<Hint> { new FakeHint() } };
+
+        /// <summary>Types the only hint's label, as the view does, with the action the modifiers chose</summary>
+        private static void Choose(OverlayViewModel vm, MouseAction? action)
+        {
+            vm.ForcedAction = action;
+            vm.MatchString = vm.Hints[0].Label;
+        }
+
+        private static IDisposable StartScroll(List<FakeScroll> scrolls)
+        {
+            var scroll = new FakeScroll();
+            scrolls.Add(scroll);
+            return scroll;
+        }
+
+        private sealed class FakeScroll : IDisposable
+        {
+            public int Disposals { get; private set; }
+
+            public void Dispose() => Disposals++;
+        }
+
         private sealed class FakeHint : Hint
         {
             public FakeHint()
                 : base(IntPtr.Zero, new System.Windows.Rect(0, 0, 10, 10))
             {
             }
+
+            /// <summary>Can be clicked (or hovered) instead, as a UI Automation hint can</summary>
+            public override Hint CreateClickHint(MouseAction action) => new FakeHint();
 
             public override void Invoke()
             {
@@ -210,13 +348,13 @@ namespace HuntAndPeck.Tests.ViewModels
 
         private static ShellViewModel CreateShell(
             FakeHintProvider provider, FakeKeyListener keys, Action<OverlayViewModel> showOverlay, Action<string, Exception> reportError,
-            Action<NoticeViewModel> showNotice = null)
+            Action<NoticeViewModel> showNotice = null, Func<IDisposable> startHoverScroll = null)
         {
             return new ShellViewModel(
                 showOverlay, vm => { }, vm => { }, text => { }, reportError,
                 new HintLabelService(), provider, null, keys,
                 new StartupRegistrationService(new FakeRegistryRunKey(), ExePath, path => true),
-                new FakeUserSettings(), message => { }, showNotice);
+                new FakeUserSettings(), message => { }, showNotice, startHoverScroll: startHoverScroll);
         }
 
         private static ShellViewModel CreateShell(FakeRegistryRunKey registry, List<string> warnings)
@@ -373,7 +511,10 @@ namespace HuntAndPeck.Tests.ViewModels
                 return Task.FromResult(PopupSession);
             }
 
-            public Task<bool> InvokeHintAsync(Hint hint) => Task.FromResult(true);
+            /// <summary>The result of invoking a hint; succeeds at once by default</summary>
+            public Func<Hint, Task<bool>> Invoke { get; set; } = hint => Task.FromResult(true);
+
+            public Task<bool> InvokeHintAsync(Hint hint) => Invoke(hint);
         }
 
         private sealed class FakeKeyListener : IKeyListenerService

@@ -9,7 +9,7 @@ namespace HuntAndPeck.Models
     /// Clicks the centre of the element with a synthesized mouse click; for elements whose UI Automation action does
     /// nothing or fails: Windows 11 taskbar app buttons (their LegacyIAccessible default action reports success but does
     /// nothing), Qt item view cells, a failed pattern action's fallback, or a forced click (Shift: left, Ctrl: right,
-    /// Ctrl+Shift: double)
+    /// Ctrl+Shift: double). A <see cref="MouseAction.Hover"/> only moves the cursor onto the element (Alt).
     /// </summary>
     internal class UiAutomationClickHint : UiAutomationHint
     {
@@ -59,6 +59,11 @@ namespace HuntAndPeck.Models
             {
                 // E.g. the user switched windows meanwhile, or a topmost window covers the element
                 throw new InvalidOperationException(string.Format("Window {0} covers the click point {1},{2}; not clicking", hit, point.X, point.Y));
+            }
+            if (Action == MouseAction.Hover)
+            {
+                MouseInput.MoveTo(point.X, point.Y);
+                return;
             }
             MouseInput.Click(point.X, point.Y, Action);
         }

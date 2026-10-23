@@ -256,7 +256,8 @@ namespace HuntAndPeck
                 _trayNotifier.ShowWarning,
                 ShowNotice,
                 _menuPopups,
-                ShowMenuOverlay);
+                ShowMenuOverlay,
+                () => new HoverScroller(onKeyDown => new KeyboardHook(onKeyDown), MouseInput.Wheel, User32.GetForegroundWindow));
 
             var shellView = new ShellView
             {
