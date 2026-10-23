@@ -491,7 +491,7 @@ namespace HuntAndPeck.ViewModels
         }
 
         /// <summary>
-        /// The release version, taken from the assembly's AssemblyInformationalVersion (see SolutionInfo.cs)
+        /// The release version, taken from the assembly's AssemblyInformationalVersion (&lt;Version&gt; in src\Directory.Build.props)
         /// </summary>
         public static string GetInformationalVersion()
         {

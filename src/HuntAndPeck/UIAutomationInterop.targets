@@ -10,18 +10,7 @@
   namespace = typelib name), so the produced assembly is equivalent to tlbimp output:
   "Interop.UIAutomationClient, Version=1.0.0.0", namespace UIAutomationClient.
 -->
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-
-  <PropertyGroup>
-    <UIAutomationInteropPath>$(IntermediateOutputPath)Interop.UIAutomationClient.dll</UIAutomationInteropPath>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <Reference Include="Interop.UIAutomationClient">
-      <HintPath>$(UIAutomationInteropPath)</HintPath>
-      <Private>True</Private>
-    </Reference>
-  </ItemGroup>
+<Project>
 
   <UsingTask TaskName="ImportRegisteredTypeLib"
              TaskFactory="CodeTaskFactory"
@@ -120,16 +109,35 @@ public class ImportRegisteredTypeLib : Task, ITypeLibImporterNotifySink
     </Task>
   </UsingTask>
 
+  <!--
+    The path is set in a target, not at evaluation: SDK-style projects import this file before the SDK
+    defines IntermediateOutputPath, which would put the assembly in the project folder.
+  -->
+  <Target Name="SetUIAutomationInteropPath">
+    <PropertyGroup>
+      <UIAutomationInteropPath>$(IntermediateOutputPath)Interop.UIAutomationClient.dll</UIAutomationInteropPath>
+    </PropertyGroup>
+  </Target>
+
   <!-- Inputs intentionally tracks only this file: the OS typelib is not a stable build input; delete obj to regenerate. -->
   <Target Name="GenerateUIAutomationInterop"
-          BeforeTargets="ResolveAssemblyReferences"
+          DependsOnTargets="SetUIAutomationInteropPath"
           Inputs="$(MSBuildThisFileFullPath)"
           Outputs="$(UIAutomationInteropPath)">
     <ImportRegisteredTypeLib TypeLibGuid="944DE083-8FB8-45CF-BCB7-C477ACB2F897"
                              VersionMajor="1"
                              VersionMinor="0"
                              OutputFile="$(UIAutomationInteropPath)" />
+  </Target>
+
+  <Target Name="AddUIAutomationInteropReference"
+          BeforeTargets="ResolveAssemblyReferences"
+          DependsOnTargets="GenerateUIAutomationInterop">
     <ItemGroup>
+      <Reference Include="Interop.UIAutomationClient">
+        <HintPath>$(UIAutomationInteropPath)</HintPath>
+        <Private>True</Private>
+      </Reference>
       <FileWrites Include="$(UIAutomationInteropPath)" />
     </ItemGroup>
   </Target>

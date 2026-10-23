@@ -1,0 +1,19 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net481</TargetFramework>
+    <!-- Keep bin\<Configuration>\ (no net481 subfolder): CI, the release zip, BUILD.md and the UiaFixture copy step use it -->
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Release version. Keep app.manifest's assemblyIdentity version in step (VersionTest checks it). -->
+    <Version>1.10.0</Version>
+    <Product>HuntAndPeck</Product>
+    <Copyright>Copyright Zachary Sims</Copyright>
+    <!-- The About box shows the InformationalVersion: no "+<commit sha>" suffix -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+  </PropertyGroup>
+
+</Project>

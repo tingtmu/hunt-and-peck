@@ -1,319 +1,60 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{D9A0620D-D51F-4FCF-821E-AADD36230830}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>HuntAndPeck</RootNamespace>
+    <UseWPF>true</UseWPF>
     <AssemblyName>hap</AssemblyName>
-    <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <WarningLevel>4</WarningLevel>
-    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
-    <PublishUrl>publish\</PublishUrl>
-    <Install>true</Install>
-    <InstallFrom>Disk</InstallFrom>
-    <UpdateEnabled>false</UpdateEnabled>
-    <UpdateMode>Foreground</UpdateMode>
-    <UpdateInterval>7</UpdateInterval>
-    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
-    <UpdatePeriodically>false</UpdatePeriodically>
-    <UpdateRequired>false</UpdateRequired>
-    <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
-    <UseApplicationTrust>false</UseApplicationTrust>
-    <BootstrapperEnabled>true</BootstrapperEnabled>
+    <AssemblyTitle>HuntAndPeck</AssemblyTitle>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
+    <!-- Run 64-bit on 64-bit Windows, like the apps it scans through UI Automation -->
     <Prefer32Bit>false</Prefer32Bit>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <Prefer32Bit>false</Prefer32Bit>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup />
-  <PropertyGroup />
-  <PropertyGroup />
+
   <ItemGroup>
-    <Reference Include="System" />
     <Reference Include="System.Configuration" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Xml" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.Xaml">
-      <RequiredTargetFramework>4.0</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="WindowsBase" />
-    <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
   </ItemGroup>
+
   <ItemGroup>
-    <ApplicationDefinition Include="App.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </ApplicationDefinition>
-    <Compile Include="..\SolutionInfo.cs">
-      <Link>Properties\SolutionInfo.cs</Link>
-    </Compile>
-    <Compile Include="App.xaml.cs">
-      <DependentUpon>App.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Configuration\CorruptSettingsFile.cs" />
-    <Compile Include="Configuration\FontSizeSetting.cs" />
-    <Compile Include="Configuration\HintStyle.cs" />
-    <Compile Include="Configuration\HintStyleSetting.cs" />
-    <Compile Include="Configuration\HintAlphabet.cs" />
-    <Compile Include="Configuration\HotKeyCombination.cs" />
-    <Compile Include="Configuration\HotKeyParser.cs" />
-    <Compile Include="Configuration\IUserSettings.cs" />
-    <Compile Include="Configuration\KeyNames.cs" />
-    <Compile Include="Configuration\SettingsBootstrapper.cs" />
-    <Compile Include="Configuration\UserSettings.cs" />
-    <Compile Include="Configuration\UserSettingsSnapshot.cs" />
-    <Compile Include="Diagnostics\AppLog.cs" />
-    <Compile Include="Diagnostics\BurstDetector.cs" />
-    <Compile Include="Diagnostics\GlobalExceptionHandlers.cs" />
-    <Compile Include="Diagnostics\NotificationThrottle.cs" />
-    <Compile Include="Diagnostics\RollingFileTraceListener.cs" />
-    <Compile Include="Extensions\DpiHelper.cs" />
-    <Compile Include="Extensions\IEnumerableTExtensions.cs" />
-    <Compile Include="Extensions\RectExtensions.cs" />
-    <Compile Include="Models\DebugHint.cs" />
-    <Compile Include="Models\Hint.cs" />
-    <Compile Include="Models\HintSession.cs" />
-    <Compile Include="Models\UiAutomationClickHint.cs" />
-    <Compile Include="Models\UiAutomationExpandCollapseHint.cs" />
-    <Compile Include="Models\UiAutomationFocusHint.cs" />
-    <Compile Include="Models\UiAutomationHint.cs" />
-    <Compile Include="Models\UiAutomationInvokeHint.cs" />
-    <Compile Include="Models\UiAutomationLegacyDefaultActionHint.cs" />
-    <Compile Include="Models\UiAutomationSelectHint.cs" />
-    <Compile Include="Models\UiAutomationToggleHint.cs" />
-    <Compile Include="Services\BarCandidate.cs" />
-    <Compile Include="Services\BarClassifier.cs" />
-    <Compile Include="Services\BarHintEnumerator.cs" />
-    <Compile Include="Services\BarsHintSource.cs" />
-    <Compile Include="Services\BarsScope.cs" />
-    <Compile Include="Services\BarWindowFinder.cs" />
-    <Compile Include="Services\ConfiguredHintLabelService.cs" />
-    <Compile Include="Services\ForegroundActivation.cs" />
-    <Compile Include="Services\HintBounds.cs" />
-    <Compile Include="Services\HintDedup.cs" />
-    <Compile Include="Services\HintFactoryMethod.cs" />
-    <Compile Include="Services\HintLabelService.cs" />
-    <Compile Include="Services\HintOrdering.cs" />
-    <Compile Include="Services\HoverScroller.cs" />
-    <Compile Include="Services\MenuPopupWatcher.cs" />
-    <Compile Include="Services\HotKeyTransaction.cs" />
-    <Compile Include="Services\Interfaces\HotKey.cs" />
-    <Compile Include="Services\Interfaces\HotKeyFailure.cs" />
-    <Compile Include="Services\Interfaces\IDebugHintProviderService.cs" />
-    <Compile Include="Services\Interfaces\IHintLabelService.cs" />
-    <Compile Include="Services\Interfaces\IHintProviderService.cs" />
-    <Compile Include="Services\Interfaces\IKeyListenerService.cs" />
-    <Compile Include="Services\Interfaces\IRegistryRunKey.cs" />
-    <Compile Include="Services\Interfaces\IStartupRegistrationService.cs" />
-    <Compile Include="Services\Interfaces\ITaskbarShell.cs" />
-    <Compile Include="Services\KeyListenerService.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Services\UiAutomationCapabilities.cs" />
-    <Compile Include="Services\UiAutomationElementCache.cs" />
-    <Compile Include="Services\UiAutomationElementScanner.cs" />
-    <Compile Include="Services\UiAutomationHintKind.cs" />
-    <Compile Include="Services\UiAutomationHintKindSelector.cs" />
-    <Compile Include="Services\UiAutomationPatternIds.cs" />
-    <Compile Include="Services\UiAutomationHintFactory.cs" />
-    <Compile Include="Services\UiAutomationHintProviderService.cs" />
-    <Compile Include="Services\MonitorBounds.cs" />
-    <Compile Include="Services\OverlayOwnerCheck.cs" />
-    <Compile Include="Services\PollingWait.cs" />
-    <Compile Include="Services\RegistryRunKey.cs" />
-    <Compile Include="Services\StartupRegistrationService.cs" />
-    <Compile Include="Services\Taskbar.cs" />
-    <Compile Include="Services\TaskbarGeometry.cs" />
-    <Compile Include="Services\TaskbarReveal.cs" />
-    <Compile Include="Services\TaskbarRevealer.cs" />
-    <Compile Include="Services\TrayNotifier.cs" />
-    <Compile Include="Services\Win32TaskbarShell.cs" />
-    <Compile Include="Services\WindowHintScanner.cs" />
-    <Compile Include="Services\Uia\UiaAutomationFactory.cs" />
-    <Compile Include="Services\Uia\UiaErrors.cs" />
-    <Compile Include="Services\Uia\UiaExecutor.cs" />
-    <Compile Include="Services\Uia\UiaPatterns.cs" />
-    <Compile Include="Services\Uia\UiaPropertySource.cs" />
-    <Compile Include="Services\Uia\UiaWorker.cs" />
-    <Compile Include="SingleLaunchMutex.cs" />
-    <Compile Include="ViewModels\DebugHintViewModel.cs" />
-    <Compile Include="ViewModels\DebugOverlayViewModel.cs" />
-    <Compile Include="ViewModels\DelegateCommand.cs" />
-    <Compile Include="ViewModels\IOverlayBounds.cs" />
-    <Compile Include="ViewModels\HintViewModel.cs" />
-    <Compile Include="ViewModels\HotKeyEditorViewModel.cs" />
-    <Compile Include="ViewModels\MenuHintFollower.cs" />
-    <Compile Include="ViewModels\NoticeViewModel.cs" />
-    <Compile Include="ViewModels\NotifyPropertyChanged.cs" />
-    <Compile Include="ViewModels\OptionsViewModel.cs" />
-    <Compile Include="ViewModels\ShellViewModel.cs" />
-    <Compile Include="ViewModels\OverlayViewModel.cs" />
-    <Compile Include="Views\DebugOverlayView.xaml.cs">
-      <DependentUpon>DebugOverlayView.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\ForegroundWindow.cs" />
-    <Compile Include="Views\HotKeyCaptureBox.cs" />
-    <Compile Include="Views\OverlayPlacement.cs" />
-    <Compile Include="Views\HintColors.cs" />
-    <Compile Include="Views\OverlayTheme.cs" />
-    <Compile Include="Views\PhysicalOverlayWindow.cs" />
-    <Compile Include="Views\OptionsView.xaml.cs">
-      <DependentUpon>OptionsView.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\ShellView.xaml.cs">
-      <DependentUpon>ShellView.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\OverlayView.xaml.cs">
-      <DependentUpon>OverlayView.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\NoticeView.xaml.cs">
-      <DependentUpon>NoticeView.xaml</DependentUpon>
-    </Compile>
+    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.1.0" />
   </ItemGroup>
+
   <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Properties\Resources.Designer.cs">
+    <ProjectReference Include="..\NativeMethods\NativeMethods.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\originalbird.ico" />
+  </ItemGroup>
+
+  <!-- Designer metadata, so Visual Studio keeps regenerating the Resources and Settings code -->
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="Properties\Settings.Designer.cs">
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <Compile Update="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <None Include="Properties\Settings.settings">
+    <None Update="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
-    <AppDesigner Include="Properties\" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="App.config" />
-    <None Include="app.manifest" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\originalbird.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <Page Include="Views\DebugOverlayView.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Views\OptionsView.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\ShellView.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\OverlayView.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\NoticeView.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.1.0" />
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\NativeMethods\NativeMethods.csproj">
-      <Project>{556f1a03-8752-4c41-bb29-e7fa7ff68cd9}</Project>
-      <Name>NativeMethods</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <BootstrapperPackage Include=".NETFramework,Version=v4.8.1">
-      <Visible>False</Visible>
-      <ProductName>Microsoft .NET Framework 4.8.1 %28x86 and x64%29</ProductName>
-      <Install>true</Install>
-    </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
-      <Visible>False</Visible>
-      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
-      <Install>false</Install>
-    </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
-      <Visible>False</Visible>
-      <ProductName>.NET Framework 3.5 SP1</ProductName>
-      <Install>false</Install>
-    </BootstrapperPackage>
-  </ItemGroup>
+
   <!--
     UIAutomationClient COM interop (Interop.UIAutomationClient.dll) is generated in-process by
     UIAutomationInterop.targets instead of <COMReference>, because ResolveComReference requires
     AxImp.exe from the .NET Framework SDK. The former embedded-only COMReferences "UIA"
     (UIAutomationCore) and "UIAutomationCrossBitnessHookLib" were unused and produced no output.
   -->
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="UIAutomationInterop.targets" />
-  <!--
-    WPF markup compilation (.NET Framework WinFX targets) builds a temporary *_wpftmp.csproj whose file
-    name differs, so Microsoft.Common.targets does not import this project's NuGet-generated props/targets.
-    Import them explicitly so Microsoft.NETFramework.ReferenceAssemblies also applies to the temp project.
-  -->
-  <ImportGroup Condition="$(MSBuildProjectName.EndsWith('_wpftmp'))">
-    <Import Project="$(MSBuildProjectExtensionsPath)HuntAndPeck.csproj.nuget.g.props" Condition="Exists('$(MSBuildProjectExtensionsPath)HuntAndPeck.csproj.nuget.g.props')" />
-    <Import Project="$(MSBuildProjectExtensionsPath)HuntAndPeck.csproj.nuget.g.targets" Condition="Exists('$(MSBuildProjectExtensionsPath)HuntAndPeck.csproj.nuget.g.targets')" />
-  </ImportGroup>
-  <PropertyGroup>
-    <PreBuildEvent>
-    </PreBuildEvent>
-  </PropertyGroup>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>

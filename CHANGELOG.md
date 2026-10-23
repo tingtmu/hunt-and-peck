@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Development
+- SDK-style project files (still .NET Framework 4.8.1). Building needs the ".NET SDK" component of VS 2022 Build Tools;
+  `global.json` pins a 9.0 SDK.
+- The version lives in `<Version>` in `src/Directory.Build.props`, which replaces `SolutionInfo.cs`.
+- CI fails if the build writes files outside `bin\`/`obj\`, and builds the release zip on every push.
+  Tests check hap.exe's title, version text (no commit suffix) and that it isn't 32-bit-preferred.
+
 ## 1.10.0 (2026-10-23)
 
 ### Mouse actions

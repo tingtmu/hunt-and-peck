@@ -17,6 +17,10 @@ jobs:
 
       - uses: microsoft/setup-msbuild@v2
 
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
@@ -34,22 +38,32 @@ jobs:
               src\HuntAndPeck.Tests\bin\Release\HuntAndPeck.Tests.dll
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Check tag matches SolutionInfo.cs version
-        if: startsWith(github.ref, 'refs/tags/v')
+      # Build output belongs in bin\ and obj\ (git-ignored); anything else means a target wrote into the source tree
+      - name: Check build left the source tree clean
         run: |
-          $version = '${{ github.ref_name }}'.Substring(1)
-          $info = Get-Content src\SolutionInfo.cs -Raw
-          if ($info -notmatch 'AssemblyInformationalVersionAttribute\("([^"]+)"\)') {
-            throw 'AssemblyInformationalVersionAttribute not found in src\SolutionInfo.cs'
-          }
-          if ($Matches[1] -ne $version) {
-            throw "Tag version '$version' does not match SolutionInfo.cs version '$($Matches[1])'"
+          $changes = git status --porcelain
+          if ($changes) {
+            $changes
+            throw 'The build or tests created or changed files outside bin\ and obj\'
           }
 
-      - name: Package release
+      - name: Check tag matches Directory.Build.props version
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           $version = '${{ github.ref_name }}'.Substring(1)
+          $node = Select-Xml -Path src\Directory.Build.props -XPath '/Project/PropertyGroup/Version'
+          if (-not $node) {
+            throw '<Version> not found in src\Directory.Build.props'
+          }
+          $projectVersion = $node.Node.InnerText
+          if ($projectVersion -ne $version) {
+            throw "Tag version '$version' does not match Directory.Build.props version '$projectVersion'"
+          }
+
+      # Runs on every push so a missing release file fails early; only tags upload and publish the zip
+      - name: Package release
+        run: |
+          $version = (Select-Xml -Path src\Directory.Build.props -XPath '/Project/PropertyGroup/Version').Node.InnerText
           $zip = "HuntAndPeck-$version.zip"
           $files = 'hap.exe', 'hap.exe.config', 'HuntAndPeck.NativeMethods.dll',
                    'Interop.UIAutomationClient.dll', 'Hardcodet.NotifyIcon.Wpf.dll' |

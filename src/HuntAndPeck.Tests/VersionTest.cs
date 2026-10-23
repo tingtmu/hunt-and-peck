@@ -7,7 +7,7 @@ namespace HuntAndPeck.Tests
 {
     public class VersionTest
     {
-        /// <summary>app.manifest can't take its version from SolutionInfo.cs, so the two are kept in sync by hand</summary>
+        /// <summary>app.manifest can't take its version from &lt;Version&gt; in src\Directory.Build.props, so the two are kept in sync by hand</summary>
         [Fact]
         public void ManifestVersion_MatchesAssemblyVersion()
         {

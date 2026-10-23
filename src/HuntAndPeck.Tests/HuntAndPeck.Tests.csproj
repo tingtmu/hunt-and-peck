@@ -1,60 +1,17 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{043555C4-568F-4ECD-B064-6C3DC1EA3124}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>HuntAndPeck.Tests</RootNamespace>
-    <AssemblyName>HuntAndPeck.Tests</AssemblyName>
-    <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
-    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
+
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.ComponentModel.Composition" />
-    <Reference Include="System.Configuration" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.IO.Compression" />
-    <Reference Include="System.Numerics" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xml" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
   </ItemGroup>
+
   <ItemGroup>
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-    </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
@@ -66,86 +23,23 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+
   <ItemGroup>
-    <Compile Include="Configuration\CorruptSettingsFileTest.cs" />
-    <Compile Include="Configuration\FontSizeSettingTest.cs" />
-    <Compile Include="Configuration\HintAlphabetTest.cs" />
-    <Compile Include="Configuration\HotKeyParserTest.cs" />
-    <Compile Include="Configuration\UserSettingsTest.cs" />
-    <Compile Include="Diagnostics\BurstDetectorTest.cs" />
-    <Compile Include="Diagnostics\NotificationThrottleTest.cs" />
-    <Compile Include="Diagnostics\RollingFileTraceListenerTest.cs" />
-    <Compile Include="Extensions\DpiHelperTest.cs" />
-    <Compile Include="Integration\FixtureInvokeTest.cs" />
-    <Compile Include="Integration\FixtureScanTest.cs" />
-    <Compile Include="Integration\FixtureUia.cs" />
-    <Compile Include="Integration\UiaFixtureApp.cs" />
-    <Compile Include="Extensions\RectExtensionsTest.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Services\HintBoundsTest.cs" />
-    <Compile Include="Services\HintDedupTest.cs" />
-    <Compile Include="Services\HintLabelServiceTest.cs" />
-    <Compile Include="Services\HintOrderingTest.cs" />
-    <Compile Include="Services\HoverScrollerTest.cs" />
-    <Compile Include="Services\MenuPopupWatcherTest.cs" />
-    <Compile Include="ViewModels\MenuHintFollowerTest.cs" />
-    <Compile Include="Services\UiAutomationHintKindSelectorTest.cs" />
-    <Compile Include="Services\HotKeyTest.cs" />
-    <Compile Include="Services\FakeRegistryRunKey.cs" />
-    <Compile Include="Services\HotKeyTransactionTest.cs" />
-    <Compile Include="Services\StartupRegistrationServiceTest.cs" />
-    <Compile Include="Services\BarClassifierTest.cs" />
-    <Compile Include="Services\BarHintEnumeratorTest.cs" />
-    <Compile Include="Services\BarsHintSourceTest.cs" />
-    <Compile Include="Services\FakeClock.cs" />
-    <Compile Include="Services\FakeTaskbarShell.cs" />
-    <Compile Include="Services\PollingWaitTest.cs" />
-    <Compile Include="Services\TaskbarGeometryTest.cs" />
-    <Compile Include="Services\TaskbarRevealerTest.cs" />
-    <Compile Include="Services\Uia\UiaErrorsTest.cs" />
-    <Compile Include="Services\Uia\UiaExecutorTest.cs" />
-    <Compile Include="Services\Uia\UiaWorkerTest.cs" />
-    <Compile Include="SingleLaunchMutexTest.cs" />
-    <Compile Include="VersionTest.cs" />
-    <Compile Include="ViewModels\FakeUserSettings.cs" />
-    <Compile Include="ViewModels\OptionsViewModelTest.cs" />
-    <Compile Include="ViewModels\OverlayViewModelTest.cs" />
-    <Compile Include="ViewModels\ShellViewModelTest.cs" />
-    <Compile Include="Views\OverlayPlacementTest.cs" />
-    <Compile Include="Views\HintColorsTest.cs" />
-    <Compile Include="Views\OverlayThemeTest.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\NativeMethods\NativeMethods.csproj">
-      <Project>{556f1a03-8752-4c41-bb29-e7fa7ff68cd9}</Project>
-      <Name>NativeMethods</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\HuntAndPeck\HuntAndPeck.csproj">
-      <Project>{d9a0620d-d51f-4fcf-821e-aadd36230830}</Project>
-      <Name>HuntAndPeck</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\HuntAndPeck\app.manifest">
-      <Link>app.manifest</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
+    <ProjectReference Include="..\NativeMethods\NativeMethods.csproj" />
+    <ProjectReference Include="..\HuntAndPeck\HuntAndPeck.csproj" />
     <!-- Built before the tests, but only run, not referenced; copied next to the test dll below -->
-    <ProjectReference Include="..\HuntAndPeck.UiaFixture\HuntAndPeck.UiaFixture.csproj">
-      <Project>{7b1c5e2a-3d4f-4a86-9c21-5e0f8a6d1b47}</Project>
-      <Name>HuntAndPeck.UiaFixture</Name>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
+    <ProjectReference Include="..\HuntAndPeck.UiaFixture\HuntAndPeck.UiaFixture.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
+
   <ItemGroup>
-    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
+    <None Include="..\HuntAndPeck\app.manifest" Link="app.manifest" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+
   <!-- The tests use UIA types too; generates this project's own copy of the interop assembly -->
   <Import Project="..\HuntAndPeck\UIAutomationInterop.targets" />
+
   <Target Name="CopyUiaFixture" AfterTargets="Build">
     <Copy SourceFiles="..\HuntAndPeck.UiaFixture\bin\$(Configuration)\HuntAndPeck.UiaFixture.exe" DestinationFolder="$(OutDir)" />
   </Target>
+
 </Project>

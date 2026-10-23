@@ -1,18 +1,22 @@
 # Building HuntAndPeck from the command line
 
-No Visual Studio IDE, `dotnet` CLI, or .NET Framework targeting pack is required.
+No Visual Studio IDE or .NET Framework targeting pack is required.
 
 ## Prerequisites
 
 - .NET Framework 4.8.1 runtime, i.e. **Windows 10 21H2+ or Windows 11 22H2+** (built in on Windows 11 22H2+).
   Targeting 4.8.1 is a deliberate choice; older Windows versions are not supported.
-- MSBuild 17 from **Visual Studio 2022 Build Tools** (or any VS 2022 edition).
+- MSBuild 17 from **Visual Studio 2022 Build Tools** (or any VS 2022 edition), with the **.NET SDK**
+  component (Individual components → ".NET SDK"), which the SDK-style project files need. `global.json` pins
+  it to a 9.0 SDK (9.0.300 or a later 9.0 release), the version that VS 2022 Build Tools (MSBuild 17.14) installs. From the command line:
+  `& "C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe" modify --installPath "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools" --add Microsoft.NetCore.Component.SDK --passive`
 - Network access to nuget.org for the first restore (configured in `NuGet.config`).
 
-Reference assemblies come from the `Microsoft.NETFramework.ReferenceAssemblies` NuGet package, and
-`Interop.UIAutomationClient.dll` is generated at build time from the UIAutomationClient type library
-registered in Windows (see `src/HuntAndPeck/UIAutomationInterop.targets`), so the .NET Framework SDK
-(TlbImp/AxImp) is not needed.
+Reference assemblies come from the `Microsoft.NETFramework.ReferenceAssemblies` NuGet package (referenced
+automatically by the .NET SDK), and `Interop.UIAutomationClient.dll` is generated at build time from the
+UIAutomationClient type library registered in Windows (see `src/HuntAndPeck/UIAutomationInterop.targets`), so
+the .NET Framework SDK (TlbImp/AxImp) is not needed. That generation runs only in Visual Studio's
+`MSBuild.exe`, so build with it rather than `dotnet build`.
 
 ## Build
 
@@ -53,14 +57,19 @@ Skip them (e.g. on a headless machine) by adding `-notrait "Category=Integration
 ## CI / Release
 
 GitHub Actions (`.github/workflows/ci.yml`) builds and tests every push and pull request on
-`windows-latest`, using the same commands as above. Pushing a `v*` tag (e.g. `v1.8.2`) additionally
-checks that the tag matches `AssemblyInformationalVersion` in `src\SolutionInfo.cs`, then publishes a
+`windows-latest`, using the same commands as above. It also checks that the build left no files outside
+`bin\` and `obj\`, and builds the release zip on every push. Pushing a `v*` tag (e.g. `v1.8.2`) additionally
+checks that the tag matches `<Version>` in `src\Directory.Build.props`, then publishes a
 GitHub Release with `HuntAndPeck-<version>.zip` and `SHA256SUMS.txt`.
+
+To release a new version, set `<Version>` in `src\Directory.Build.props` and the `assemblyIdentity`
+version in `src\HuntAndPeck\app.manifest` (a test checks they match), then push the `v<version>` tag.
 
 ## Notes
 
-- The projects are classic (non-SDK) csproj files using `PackageReference`. SDK-style projects
-  would need the .NET SDK, which VS Build Tools does not include by default.
+- The projects are SDK-style csproj files targeting `net481`. Settings shared by all of them (target
+  framework, output paths, version, product, copyright) are in `src\Directory.Build.props`. Source files
+  are picked up automatically, so new `.cs` and `.xaml` files don't need to be added to the project.
 - Legacy / unused: `src\build.ps1` and `src\build.cake` (Cake 0.20, VS2017 MSBuild, packages.config
   restore), `src\.nuget\NuGet.exe`, and any `src\packages\` folder from old packages.config restores.
   They are not part of the build; use the commands above.
