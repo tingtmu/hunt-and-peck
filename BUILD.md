@@ -47,6 +47,9 @@ $nugetPackages = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { "$env:U
     src\HuntAndPeck.Tests\bin\Release\HuntAndPeck.Tests.dll
 ```
 
+The integration tests (`[Trait("Category", "Integration")]`) launch a small WinForms fixture window (`src\HuntAndPeck.UiaFixture`) and scan it through UI Automation, so they need an interactive desktop.
+Skip them (e.g. on a headless machine) by adding `-notrait "Category=Integration"` to the `xunit.console.exe` command.
+
 ## Notes
 
 - The projects are classic (non-SDK) csproj files using `PackageReference`. SDK-style projects
