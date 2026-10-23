@@ -33,13 +33,16 @@ namespace HuntAndPeck.ViewModels
         /// fix a failed action (see <see cref="IHintProviderService.InvokeHintAsync"/>)
         /// </param>
         /// <param name="fontSize">Label font size</param>
+        /// <param name="hintStyle">Label colours</param>
         public OverlayViewModel(
             HintSession session,
             IHintLabelService hintLabelService,
             Func<Hint, Task<bool>> invokeHint,
-            double fontSize = FontSizeSetting.Default)
+            double fontSize = FontSizeSetting.Default,
+            HintStyle hintStyle = HintStyleSetting.Default)
         {
             _invokeHint = invokeHint;
+            HintStyle = hintStyle;
             _bounds = session.OwningWindowBounds;
             OverlayOwner = session.OverlayOwner;
 
@@ -84,6 +87,9 @@ namespace HuntAndPeck.ViewModels
                 NotifyOfPropertyChange();
             }
         }
+
+        /// <summary>Label colours; applied by the view when it gets this view model</summary>
+        public HintStyle HintStyle { get; }
 
         public Action CloseOverlay { get; set; }
 

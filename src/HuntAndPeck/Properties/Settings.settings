@@ -19,5 +19,8 @@
     <Setting Name="HintAlphabet" Type="System.String" Scope="User">
       <Value Profile="(Default)">SADFJKLEWCMPGH</Value>
     </Setting>
+    <Setting Name="HintStyle" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Classic</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

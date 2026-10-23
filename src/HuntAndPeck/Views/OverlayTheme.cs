@@ -47,6 +47,12 @@ namespace HuntAndPeck.Views
             return For(ReadAppsUseLightTheme());
         }
 
+        /// <summary>True if the Windows app theme is light; also if it can't be read</summary>
+        public static bool SystemIsLight()
+        {
+            return ReferenceEquals(ForSystem(), Light);
+        }
+
         /// <param name="appsUseLightTheme">The AppsUseLightTheme registry value, else null if absent</param>
         public static OverlayTheme For(object appsUseLightTheme)
         {

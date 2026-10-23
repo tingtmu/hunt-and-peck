@@ -24,6 +24,16 @@ namespace HuntAndPeck.Views
 
             var created = Stopwatch.StartNew();
             ContentRendered += (sender, e) => Trace.TraceInformation("Overlay rendered {0} ms after it was created", created.ElapsedMilliseconds);
+
+            // Before the first render: the view model is set before the window is shown
+            DataContextChanged += (sender, e) =>
+            {
+                var vm = e.NewValue as OverlayViewModel;
+                if (vm != null)
+                {
+                    HintColors.For(vm.HintStyle, OverlayTheme.SystemIsLight()).ApplyTo(Resources);
+                }
+            };
         }
 
         private void OverlayView_OnPreviewKeyDown(object sender, KeyEventArgs e)

@@ -12,7 +12,9 @@
     PreviewKeyDown="OverlayView_OnPreviewKeyDown">
     <local:PhysicalOverlayWindow.Resources>
         <Style x:Key="HintStyle" TargetType="TextBlock">
-            <Setter Property="Background" Value="Yellow" />
+            <!-- Colours from the Hint style option (HintColors) -->
+            <Setter Property="Background" Value="{DynamicResource HintBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource HintForeground}" />
         </Style>
         <!-- Typed-text box: a rounded pill in the Windows app theme's colours (OverlayTheme), shown once typing
              starts. Sizes are physical pixels (see PhysicalOverlayWindow). -->
@@ -92,8 +94,11 @@
                             </Rectangle.Fill>
                         </Rectangle>-->
                         <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="1 1 0 0" Width="{Binding Hint.BoundingRectangle.Width}" Height="{Binding Hint.BoundingRectangle.Height}">
-                            <TextBlock Text="{Binding Label}" FontFamily="Helvetica, Arial" FontWeight="Bold" FontSize="{Binding FontSize}" Style="{StaticResource HintStyle}">
-                            </TextBlock>
+                            <!-- Margin -1 offsets the 1-px border so the label keeps its size and position -->
+                            <Border BorderBrush="{DynamicResource HintBorder}" BorderThickness="1" Margin="-1">
+                                <TextBlock Text="{Binding Label}" FontFamily="Helvetica, Arial" FontWeight="Bold" FontSize="{Binding FontSize}" Style="{StaticResource HintStyle}">
+                                </TextBlock>
+                            </Border>
                         </Viewbox>
                     </Grid>
                 </DataTemplate>
