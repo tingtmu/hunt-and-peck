@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using HuntAndPeck.Configuration;
 using HuntAndPeck.Models;
+using HuntAndPeck.NativeMethods;
 using HuntAndPeck.Services;
 using HuntAndPeck.Services.Interfaces;
 
@@ -140,15 +141,26 @@ namespace HuntAndPeck.ViewModels
         }
 
         /// <summary>
-        /// True while Shift is held for the typed letter: the matched hint is clicked with the mouse instead of
-        /// using its UI Automation action (for elements whose action silently does nothing). Set by the view.
+        /// The mouse action chosen by the modifiers held for the typed letter, else null: the matched hint is
+        /// clicked that way instead of using its UI Automation action. Shift: left click (for elements whose action
+        /// silently does nothing), Ctrl: right-click, Ctrl+Shift: double-click. Set by the view.
         /// </summary>
-        public bool ForceClick { get; set; }
+        public MouseAction? ForcedAction { get; set; }
+
+        /// <summary>The <see cref="ForcedAction"/> for the modifiers held with a typed letter</summary>
+        public static MouseAction? ForcedActionFor(bool shift, bool ctrl)
+        {
+            if (ctrl)
+            {
+                return shift ? MouseAction.DoubleClick : MouseAction.RightClick;
+            }
+            return shift ? MouseAction.LeftClick : (MouseAction?)null;
+        }
 
         /// <summary>
         /// Invokes the hint (see <see cref="InvokeThenCloseAsync"/>), then, if its action failed in a way a mouse
         /// click may fix (<see cref="Hint.ClicksOnFailure"/>) within <see cref="ClickFallbackDeadline"/>, clicks
-        /// the element instead, with the overlay closed. <see cref="ForceClick"/> clicks straight away.
+        /// the element instead, with the overlay closed. <see cref="ForcedAction"/> clicks straight away.
         /// </summary>
         private async void InvokeAndClose(Hint hint)
         {
@@ -159,9 +171,9 @@ namespace HuntAndPeck.ViewModels
             }
             _invoked = true;
 
-            if (ForceClick)
+            if (ForcedAction.HasValue)
             {
-                hint = hint.CreateClickHint() ?? hint;
+                hint = hint.CreateClickHint(ForcedAction.Value) ?? hint;
             }
 
             // Published before closing, covering any fallback click: headless mode reads PendingInvocation
@@ -175,7 +187,7 @@ namespace HuntAndPeck.ViewModels
                 {
                     return;
                 }
-                var click = hint.CreateClickHint();
+                var click = hint.CreateClickHint(MouseAction.LeftClick);
                 if (click == null)
                 {
                     return;

@@ -34,12 +34,28 @@ namespace HuntAndPeck.Views
                 return;
             }
 
-            // Runs before the key's text reaches the match box: Shift+letter forces a mouse click. The real Shift
-            // state, not the letter's case, so Caps Lock doesn't force clicks.
+            // Runs before the key's text reaches the match box: the modifiers held with the letter choose a mouse
+            // action (OverlayViewModel.ForcedActionFor). The real Shift state, not the letter's case, so Caps Lock
+            // doesn't force clicks.
+            var modifiers = Keyboard.Modifiers;
             var vm = DataContext as OverlayViewModel;
             if (vm != null)
             {
-                vm.ForceClick = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+                vm.ForcedAction = OverlayViewModel.ForcedActionFor(
+                    (modifiers & ModifierKeys.Shift) != 0,
+                    (modifiers & ModifierKeys.Control) != 0);
+            }
+
+            // Ctrl+letter types no text (the box would run Ctrl+A, Ctrl+C, ...), so type the letter here
+            if ((modifiers & ModifierKeys.Control) != 0 && (modifiers & ModifierKeys.Alt) == 0 && e.Key >= Key.A && e.Key <= Key.Z)
+            {
+                e.Handled = true;
+                var letter = ((char)('A' + (e.Key - Key.A))).ToString();
+                if (Accepts(letter))
+                {
+                    MatchStringControl.SelectedText = letter;
+                    MatchStringControl.CaretIndex = MatchStringControl.Text.Length;
+                }
             }
         }
 
@@ -49,14 +65,24 @@ namespace HuntAndPeck.Views
         /// </summary>
         private void MatchStringControl_OnPreviewTextInput(object sender, TextCompositionEventArgs e)
         {
-            var vm = DataContext as OverlayViewModel;
-            var box = MatchStringControl;
-            var typed = box.Text.Remove(box.SelectionStart, box.SelectionLength).Insert(box.SelectionStart, e.Text);
-            if (vm != null && !vm.HasMatch(typed))
+            if (!Accepts(e.Text))
             {
                 e.Handled = true;
-                Shake();
             }
+        }
+
+        /// <returns>True if some hint matches once <paramref name="text"/> is typed; else shakes the box</returns>
+        private bool Accepts(string text)
+        {
+            var vm = DataContext as OverlayViewModel;
+            var box = MatchStringControl;
+            var typed = box.Text.Remove(box.SelectionStart, box.SelectionLength).Insert(box.SelectionStart, text);
+            if (vm == null || vm.HasMatch(typed))
+            {
+                return true;
+            }
+            Shake();
+            return false;
         }
 
         /// <summary>Shakes the match box, shown even before anything was typed</summary>

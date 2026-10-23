@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using HuntAndPeck.Models;
+using HuntAndPeck.NativeMethods;
 using HuntAndPeck.Services;
 using HuntAndPeck.ViewModels;
 using Xunit;
@@ -163,7 +164,7 @@ namespace HuntAndPeck.Tests.ViewModels
             var original = new FallbackFakeHint("original", new ClickFakeHint());
             var recorder = new EventRecorder();
             var vm = CreateViewModel(original, recorder, hint => Task.FromResult(true));
-            vm.ForceClick = true;
+            vm.ForcedAction = MouseAction.LeftClick;
 
             vm.MatchString = vm.Hints[0].Label;
 
@@ -177,7 +178,7 @@ namespace HuntAndPeck.Tests.ViewModels
             var original = new FallbackFakeHint("original", null);
             var recorder = new EventRecorder();
             var vm = CreateViewModel(original, recorder, hint => Task.FromResult(true));
-            vm.ForceClick = true;
+            vm.ForcedAction = MouseAction.LeftClick;
 
             vm.MatchString = vm.Hints[0].Label;
 
@@ -205,7 +206,7 @@ namespace HuntAndPeck.Tests.ViewModels
             var original = new FallbackFakeHint("original", new ClickFakeHint(), clicksOnFailure: false);
             var recorder = new EventRecorder();
             var vm = CreateViewModel(original, recorder, hint => Task.FromResult(true));
-            vm.ForceClick = true;
+            vm.ForcedAction = MouseAction.LeftClick;
 
             vm.MatchString = vm.Hints[0].Label;
 
@@ -225,6 +226,45 @@ namespace HuntAndPeck.Tests.ViewModels
 
             Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
             Assert.Equal(new List<string> { "invoke:original", "close" }, recorder.Snapshot());
+        }
+
+        [Theory]
+        [InlineData(MouseAction.RightClick)]
+        [InlineData(MouseAction.DoubleClick)]
+        public void Match_ForcedAction_ClicksThatWay(MouseAction action)
+        {
+            var original = new FallbackFakeHint("original", new ClickFakeHint());
+            var recorder = new EventRecorder();
+            var vm = CreateViewModel(original, recorder, hint => Task.FromResult(true));
+            vm.ForcedAction = action;
+
+            vm.MatchString = vm.Hints[0].Label;
+
+            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            Assert.Equal(new[] { action }, original.RequestedActions);
+            Assert.Equal(new List<string> { "close", "invoke:click" }, recorder.Snapshot());
+        }
+
+        [Fact]
+        public void FailedInvocation_FallsBackToALeftClick()
+        {
+            var original = new FallbackFakeHint("original", new ClickFakeHint());
+            var vm = CreateViewModel(original, new EventRecorder(), hint => Task.FromResult(false));
+
+            vm.MatchString = vm.Hints[0].Label;
+
+            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            Assert.Equal(new[] { MouseAction.LeftClick }, original.RequestedActions);
+        }
+
+        [Theory]
+        [InlineData(false, false, null)]
+        [InlineData(true, false, MouseAction.LeftClick)]
+        [InlineData(false, true, MouseAction.RightClick)]
+        [InlineData(true, true, MouseAction.DoubleClick)]
+        public void ForcedActionFor_Modifiers(bool shift, bool ctrl, MouseAction? expected)
+        {
+            Assert.Equal(expected, OverlayViewModel.ForcedActionFor(shift, ctrl));
         }
 
         [Fact]
@@ -341,7 +381,13 @@ namespace HuntAndPeck.Tests.ViewModels
 
             public string Name { get; }
 
-            public override Hint CreateClickHint() => _clickHint;
+            public override Hint CreateClickHint(MouseAction action)
+            {
+                RequestedActions.Add(action);
+                return _clickHint;
+            }
+
+            public List<MouseAction> RequestedActions { get; } = new List<MouseAction>();
 
             public override bool ClicksOnFailure => _clicksOnFailure;
 

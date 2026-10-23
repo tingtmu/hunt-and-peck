@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using HuntAndPeck.NativeMethods;
 using UIAutomationClient;
 
 namespace HuntAndPeck.Models
@@ -17,6 +18,6 @@ namespace HuntAndPeck.Models
 
         protected IUIAutomationElement AutomationElement { get; }
 
-        public override Hint CreateClickHint() => new UiAutomationClickHint(OwningWindow, AutomationElement, BoundingRectangle);
+        public override Hint CreateClickHint(MouseAction action) => new UiAutomationClickHint(OwningWindow, AutomationElement, BoundingRectangle, action);
     }
 }

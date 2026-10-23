@@ -4,14 +4,25 @@ using System.Threading;
 
 namespace HuntAndPeck.NativeMethods
 {
+    /// <summary>How <see cref="MouseInput.Click"/> clicks</summary>
+    public enum MouseAction
+    {
+        LeftClick,
+        RightClick,
+        DoubleClick,
+    }
+
     /// <summary>
-    /// Synthesized mouse clicks, for elements whose UI Automation actions do nothing (Windows 11 taskbar app buttons)
+    /// Synthesized mouse clicks, for elements whose UI Automation actions do nothing (Windows 11 taskbar app buttons),
+    /// and for clicks UI Automation has no action for (right-click, double-click)
     /// </summary>
     public static class MouseInput
     {
         private const uint INPUT_MOUSE = 0;
         private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
         private const uint MOUSEEVENTF_LEFTUP = 0x0004;
+        private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
+        private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
 
         /// <summary>Time the target gets to read the pressed/released input before the cursor moves back</summary>
         private static readonly TimeSpan SettleDelay = TimeSpan.FromMilliseconds(30);
@@ -59,13 +70,16 @@ namespace HuntAndPeck.NativeMethods
         private static extern bool SetCursorPos(int x, int y);
 
         /// <summary>
-        /// Left-clicks at the screen point (physical pixels), then moves the cursor back where it was
+        /// Clicks at the screen point (physical pixels), then moves the cursor back where it was
         /// </summary>
-        /// <remarks>Waits for held modifier keys to be released first, so they don't change what the click does</remarks>
+        /// <remarks>
+        /// Waits for held modifier keys to be released first, so they don't change what the click does (e.g. the
+        /// Ctrl that chose a right-click). A double-click is sent as one input batch, well within the double-click time.
+        /// </remarks>
         /// <exception cref="InvalidOperationException">
         /// A modifier key stayed held, the cursor could not be moved, or the input was blocked (e.g. by UIPI)
         /// </exception>
-        public static void LeftClick(int x, int y)
+        public static void Click(int x, int y, MouseAction action)
         {
             if (!WaitForModifiersReleased())
             {
@@ -81,7 +95,7 @@ namespace HuntAndPeck.NativeMethods
 
             try
             {
-                var inputs = new[] { Button(MOUSEEVENTF_LEFTDOWN), Button(MOUSEEVENTF_LEFTUP) };
+                var inputs = Inputs(action);
                 var sent = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
                 if (sent != inputs.Length)
                 {
@@ -123,6 +137,19 @@ namespace HuntAndPeck.NativeMethods
                 }
             }
             return false;
+        }
+
+        private static INPUT[] Inputs(MouseAction action)
+        {
+            switch (action)
+            {
+                case MouseAction.RightClick:
+                    return new[] { Button(MOUSEEVENTF_RIGHTDOWN), Button(MOUSEEVENTF_RIGHTUP) };
+                case MouseAction.DoubleClick:
+                    return new[] { Button(MOUSEEVENTF_LEFTDOWN), Button(MOUSEEVENTF_LEFTUP), Button(MOUSEEVENTF_LEFTDOWN), Button(MOUSEEVENTF_LEFTUP) };
+                default:
+                    return new[] { Button(MOUSEEVENTF_LEFTDOWN), Button(MOUSEEVENTF_LEFTUP) };
+            }
         }
 
         private static INPUT Button(uint flags)
