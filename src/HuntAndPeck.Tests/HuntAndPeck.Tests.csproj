@@ -81,6 +81,7 @@
     <Compile Include="Services\HintBoundsTest.cs" />
     <Compile Include="Services\HintDedupTest.cs" />
     <Compile Include="Services\HintLabelServiceTest.cs" />
+    <Compile Include="Services\HintOrderingTest.cs" />
     <Compile Include="Services\UiAutomationHintKindSelectorTest.cs" />
     <Compile Include="Services\HotKeyTest.cs" />
     <Compile Include="Services\FakeRegistryRunKey.cs" />

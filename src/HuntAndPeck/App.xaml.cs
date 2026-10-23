@@ -9,6 +9,7 @@ using System.Windows.Interop;
 using HuntAndPeck.Configuration;
 using HuntAndPeck.Diagnostics;
 using HuntAndPeck.Models;
+using HuntAndPeck.NativeMethods;
 using HuntAndPeck.Services;
 using HuntAndPeck.ViewModels;
 using HuntAndPeck.Views;
@@ -85,6 +86,23 @@ namespace HuntAndPeck
             // Shown modally, so setting DialogResult closes it
             vm.Close = () => view.DialogResult = true;
             view.ShowDialog();
+        }
+
+        /// <summary>Shows the notice over its window, else over the foreground window; not modal</summary>
+        private static void ShowNotice(NoticeViewModel vm)
+        {
+            if (vm.Bounds.IsEmpty)
+            {
+                // Physical pixels: the process is per-monitor DPI aware
+                var raw = new RECT();
+                if (!User32.GetWindowRect(User32.GetForegroundWindow(), ref raw))
+                {
+                    Trace.TraceInformation("No window to show the notice \"{0}\" over", vm.Message);
+                    return;
+                }
+                vm = new NoticeViewModel(vm.Message, raw);
+            }
+            new NoticeView { DataContext = vm }.Show();
         }
 
         private static void ShowAbout(string text)
@@ -176,7 +194,8 @@ namespace HuntAndPeck
                 _keyListenerService,
                 startupRegistration,
                 _settings,
-                _trayNotifier.ShowWarning);
+                _trayNotifier.ShowWarning,
+                ShowNotice);
 
             var shellView = new ShellView
             {

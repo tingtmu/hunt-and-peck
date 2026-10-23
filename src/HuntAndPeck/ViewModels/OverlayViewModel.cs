@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Linq;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows;
 using HuntAndPeck.Configuration;
 using HuntAndPeck.Models;
+using HuntAndPeck.Services;
 using HuntAndPeck.Services.Interfaces;
 
 namespace HuntAndPeck.ViewModels
@@ -40,14 +42,15 @@ namespace HuntAndPeck.ViewModels
             _bounds = session.OwningWindowBounds;
             OverlayOwner = session.OverlayOwner;
 
-            var labels = hintLabelService.GetHintStrings(session.Hints.Count());
+            // Labelled in reading order, so labels follow the screen rather than the UI Automation tree
+            var hints = HintOrdering.ByReadingOrder(session.Hints);
+            var labels = hintLabelService.GetHintStrings(hints.Count);
             for (int i = 0; i < labels.Count; ++i)
             {
-                var hint = session.Hints[i];
-                _hints.Add(new HintViewModel(hint, fontSize)
+                _hints.Add(new HintViewModel(hints[i], fontSize)
                 {
                     Label = labels[i],
-                    Active = false
+                    Active = true
                 });
             }
         }
@@ -97,26 +100,43 @@ namespace HuntAndPeck.ViewModels
         /// </summary>
         public IntPtr OverlayOwner { get; }
 
+        /// <summary>
+        /// The typed letters: only hints whose label starts with them stay shown (<see cref="HintViewModel.Active"/>),
+        /// and a single match is invoked
+        /// </summary>
         public string MatchString
         {
             set
             {
+                var matching = new List<HintViewModel>();
                 foreach (var x in Hints)
                 {
-                    x.Active = false;
+                    x.Active = IsMatch(x, value);
+                    if (x.Active)
+                    {
+                        matching.Add(x);
+                    }
                 }
 
-                var matching = Hints.Where(x => x.Label.StartsWith(value, StringComparison.OrdinalIgnoreCase)).ToArray();
-                foreach (var x in matching)
+                if (matching.Count == 1)
                 {
-                    x.Active = true;
-                }
-
-                if (matching.Count() == 1)
-                {
-                    InvokeAndClose(matching.First().Hint);
+                    InvokeAndClose(matching[0].Hint);
                 }
             }
+        }
+
+        /// <summary>
+        /// True if some hint's label starts with <paramref name="prefix"/>; the view rejects a letter that would
+        /// leave no hint, so a typo needs no Backspace
+        /// </summary>
+        public bool HasMatch(string prefix)
+        {
+            return Hints.Any(x => IsMatch(x, prefix));
+        }
+
+        private static bool IsMatch(HintViewModel hint, string prefix)
+        {
+            return hint.Label.StartsWith(prefix ?? "", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>

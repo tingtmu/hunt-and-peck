@@ -126,6 +126,7 @@
     <Compile Include="Services\HintDedup.cs" />
     <Compile Include="Services\HintFactoryMethod.cs" />
     <Compile Include="Services\HintLabelService.cs" />
+    <Compile Include="Services\HintOrdering.cs" />
     <Compile Include="Services\HotKeyTransaction.cs" />
     <Compile Include="Services\Interfaces\HotKey.cs" />
     <Compile Include="Services\Interfaces\HotKeyFailure.cs" />
@@ -172,6 +173,7 @@
     <Compile Include="ViewModels\IOverlayBounds.cs" />
     <Compile Include="ViewModels\HintViewModel.cs" />
     <Compile Include="ViewModels\HotKeyEditorViewModel.cs" />
+    <Compile Include="ViewModels\NoticeViewModel.cs" />
     <Compile Include="ViewModels\NotifyPropertyChanged.cs" />
     <Compile Include="ViewModels\OptionsViewModel.cs" />
     <Compile Include="ViewModels\ShellViewModel.cs" />
@@ -192,6 +194,9 @@
     </Compile>
     <Compile Include="Views\OverlayView.xaml.cs">
       <DependentUpon>OverlayView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\NoticeView.xaml.cs">
+      <DependentUpon>NoticeView.xaml</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>
@@ -239,6 +244,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\OverlayView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\NoticeView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

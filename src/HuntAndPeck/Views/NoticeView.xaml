@@ -1,0 +1,25 @@
+<local:PhysicalOverlayWindow
+    x:Class="HuntAndPeck.Views.NoticeView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:HuntAndPeck.Views"
+    WindowStyle="None"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    ShowActivated="False"
+    Focusable="False"
+    AllowsTransparency="True"
+    Topmost="True">
+    <local:PhysicalOverlayWindow.Background>
+        <SolidColorBrush Color="Transparent" />
+    </local:PhysicalOverlayWindow.Background>
+    <!-- Same pill as the overlay's typed-text box, where that box would appear. Sizes are physical pixels. -->
+    <Grid IsHitTestVisible="False">
+        <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0 0 0 10" Padding="14 5"
+                Background="{DynamicResource MatchBoxBackground}" BorderBrush="{DynamicResource MatchBoxBorder}"
+                BorderThickness="1" CornerRadius="10">
+            <TextBlock Text="{Binding Message}" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="20"
+                       FontWeight="SemiBold" Foreground="{DynamicResource MatchBoxText}" />
+        </Border>
+    </Grid>
+</local:PhysicalOverlayWindow>

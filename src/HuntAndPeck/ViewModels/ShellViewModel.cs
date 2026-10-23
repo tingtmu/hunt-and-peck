@@ -12,6 +12,7 @@ using HuntAndPeck.NativeMethods;
 using HuntAndPeck.Services;
 using HuntAndPeck.Services.Interfaces;
 using Application = System.Windows.Application;
+using Rect = System.Windows.Rect;
 
 namespace HuntAndPeck.ViewModels
 {
@@ -29,6 +30,7 @@ namespace HuntAndPeck.ViewModels
         private readonly IKeyListenerService _keyListener;
         private readonly IUserSettings _settings;
         private readonly Action<string> _notifyWarning;
+        private readonly Action<NoticeViewModel> _showNotice;
         private readonly BarsHintSource _barHints;
         private bool _startWithWindows;
         private string _toolTipText;
@@ -50,8 +52,10 @@ namespace HuntAndPeck.ViewModels
             IKeyListenerService keyListener,
             IStartupRegistrationService startupRegistration,
             IUserSettings settings,
-            Action<string> notifyWarning)
+            Action<string> notifyWarning,
+            Action<NoticeViewModel> showNotice = null)
         {
+            _showNotice = showNotice;
             _showOverlay = showOverlay;
             _showDebugOverlay = showDebugOverlay;
             _showOptions = showOptions;
@@ -242,11 +246,18 @@ namespace HuntAndPeck.ViewModels
             _sessionActive = true;
             try
             {
+                var stopwatch = Stopwatch.StartNew();
                 var session = await enumerate();
+                Trace.TraceInformation("Hints enumerated in {0} ms", stopwatch.ElapsedMilliseconds);
                 if (HintSession.IsShowable(session))
                 {
                     // Blocks (modal) until the overlay closes, keeping the session active meanwhile
                     show(session);
+                }
+                else
+                {
+                    // Not modal: the hotkey works again straight away
+                    _showNotice?.Invoke(CreateNotice(session));
                 }
             }
             catch (Exception ex)
@@ -258,6 +269,23 @@ namespace HuntAndPeck.ViewModels
             {
                 _sessionActive = false;
             }
+        }
+
+        /// <summary>Notice for a window that couldn't be read (null session)</summary>
+        public const string NoResponseNotice = "This window didn't respond";
+
+        /// <summary>Notice for a window with no element to hint</summary>
+        public const string NothingToClickNotice = "Nothing to click here";
+
+        /// <summary>
+        /// Tells why no overlay appears for a session that isn't showable; its bounds are empty if the session
+        /// has none, and the notice is then placed over the foreground window
+        /// </summary>
+        public static NoticeViewModel CreateNotice(HintSession session)
+        {
+            return session == null
+                ? new NoticeViewModel(NoResponseNotice, Rect.Empty)
+                : new NoticeViewModel(NothingToClickNotice, session.OwningWindowBounds);
         }
 
         public void Exit()
