@@ -41,6 +41,7 @@ namespace HuntAndPeck.Tests.ViewModels
             Assert.Contains("Left click", keys["Shift + last letter"]);
             Assert.Contains("Right-click", keys["Ctrl + last letter"]);
             Assert.Contains("Double-click", keys["Ctrl + Shift + last letter"]);
+            Assert.Contains("Hover", keys["Alt + last letter"]);
             Assert.True(keys.ContainsKey("Esc"));
         }
 

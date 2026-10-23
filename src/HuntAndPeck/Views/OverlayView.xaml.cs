@@ -167,19 +167,21 @@ namespace HuntAndPeck.Views
             // action (OverlayViewModel.ForcedActionFor). The real Shift state, not the letter's case, so Caps Lock
             // doesn't force clicks.
             var modifiers = Keyboard.Modifiers;
+            var ctrl = (modifiers & ModifierKeys.Control) != 0;
+            var alt = (modifiers & ModifierKeys.Alt) != 0;
             var vm = DataContext as OverlayViewModel;
             if (vm != null)
             {
-                vm.ForcedAction = OverlayViewModel.ForcedActionFor(
-                    (modifiers & ModifierKeys.Shift) != 0,
-                    (modifiers & ModifierKeys.Control) != 0);
+                vm.ForcedAction = OverlayViewModel.ForcedActionFor((modifiers & ModifierKeys.Shift) != 0, ctrl, alt);
             }
 
-            // Ctrl+letter types no text (the box would run Ctrl+A, Ctrl+C, ...), so type the letter here
-            if ((modifiers & ModifierKeys.Control) != 0 && (modifiers & ModifierKeys.Alt) == 0 && e.Key >= Key.A && e.Key <= Key.Z)
+            // Ctrl+letter and Alt+letter type no text (the box would run Ctrl+A, Ctrl+C, ...; Alt+letter is an
+            // access key, reported as Key.System), so type the letter here
+            var key = e.Key == Key.System ? e.SystemKey : e.Key;
+            if (ctrl != alt && key >= Key.A && key <= Key.Z)
             {
                 e.Handled = true;
-                var letter = ((char)('A' + (e.Key - Key.A))).ToString();
+                var letter = ((char)('A' + (key - Key.A))).ToString();
                 if (Accepts(letter))
                 {
                     MatchStringControl.SelectedText = letter;

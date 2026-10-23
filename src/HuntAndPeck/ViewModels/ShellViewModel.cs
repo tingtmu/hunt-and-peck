@@ -33,6 +33,10 @@ namespace HuntAndPeck.ViewModels
         private readonly Action<string> _notifyWarning;
         private readonly Action<NoticeViewModel> _showNotice;
         private readonly MenuHintFollower _menuHints;
+        private readonly Func<IDisposable> _startHoverScroll;
+
+        /// <summary>Scrolling under the cursor after the last hover (see <see cref="StartHoverScroll"/>); null if none</summary>
+        private IDisposable _hoverScroll;
 
         /// <summary>Stops following a menu (see <see cref="StartFollowingMenus"/>); null when not following</summary>
         private CancellationTokenSource _menuFollowing;
@@ -60,9 +64,11 @@ namespace HuntAndPeck.ViewModels
             Action<string> notifyWarning,
             Action<NoticeViewModel> showNotice = null,
             MenuPopupWatcher menuPopups = null,
-            Action<OverlayViewModel, IReadOnlyList<IntPtr>> showMenuOverlay = null)
+            Action<OverlayViewModel, IReadOnlyList<IntPtr>> showMenuOverlay = null,
+            Func<IDisposable> startHoverScroll = null)
         {
             _showNotice = showNotice;
+            _startHoverScroll = startHoverScroll;
             if (menuPopups != null && showMenuOverlay != null)
             {
                 _menuHints = new MenuHintFollower(menuPopups, hintProviderService, CreateOverlayViewModel, showMenuOverlay, Task.Delay, TryBeginMenuSession, EndMenuSession);
@@ -230,7 +236,7 @@ namespace HuntAndPeck.ViewModels
             var before = _menuHints?.Snapshot();
             var vm = CreateOverlayViewModel(session);
             _showOverlay(vm);
-            StartFollowingMenus(session, vm, before);
+            FollowUp(session, vm, before);
         }
 
         private void ShowBarsOverlay(HintSession session)
@@ -239,7 +245,54 @@ namespace HuntAndPeck.ViewModels
             var vm = CreateOverlayViewModel(session);
             _showOverlay(vm);
             _barHints.OnOverlayClosed(session, vm.HintInvoked);
-            StartFollowingMenus(session, vm, before);
+            FollowUp(session, vm, before);
+        }
+
+        /// <summary>
+        /// After a hover, scrolls under the cursor; after any other action, follows the menu it may open. Not both:
+        /// the menu overlay's keyboard hook would compete with the scrolling's.
+        /// </summary>
+        private void FollowUp(HintSession session, OverlayViewModel vm, HashSet<IntPtr> before)
+        {
+            if (vm.ForcedAction == MouseAction.Hover)
+            {
+                StartHoverScroll(vm);
+            }
+            else
+            {
+                StartFollowingMenus(session, vm, before);
+            }
+        }
+
+        /// <summary>Once the hover moved the cursor, the arrow keys scroll under it (<see cref="HoverScroller"/>)</summary>
+        private async void StartHoverScroll(OverlayViewModel vm)
+        {
+            if (_startHoverScroll == null || !vm.HintInvoked)
+            {
+                return;
+            }
+
+            try
+            {
+                await vm.PendingInvocation;
+                if (!vm.Hovered)
+                {
+                    return;
+                }
+                _hoverScroll?.Dispose();
+                _hoverScroll = null;
+                _hoverScroll = _startHoverScroll();
+            }
+            catch (InvalidOperationException ex)
+            {
+                // The hover itself worked; the keys just don't scroll
+                Trace.TraceWarning("Hover scroll: the keyboard hook couldn't be installed: {0}", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                // async void: an escaping exception would surface on the dispatcher
+                _reportError("Scrolling after a hover failed", ex);
+            }
         }
 
         /// <summary>

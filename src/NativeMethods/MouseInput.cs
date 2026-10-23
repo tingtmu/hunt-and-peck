@@ -11,6 +11,9 @@ namespace HuntAndPeck.NativeMethods
         LeftClick,
         RightClick,
         DoubleClick,
+
+        /// <summary>No click: the cursor moves onto the element and stays there (<see cref="MouseInput.MoveTo"/>)</summary>
+        Hover,
     }
 
     /// <summary>
@@ -24,6 +27,8 @@ namespace HuntAndPeck.NativeMethods
         private const uint MOUSEEVENTF_LEFTUP = 0x0004;
         private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
         private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
+        private const uint MOUSEEVENTF_WHEEL = 0x0800;
+        private const uint MOUSEEVENTF_HWHEEL = 0x1000;
 
         /// <summary>Time the target gets to read the pressed/released input before the cursor moves back</summary>
         private static readonly TimeSpan SettleDelay = TimeSpan.FromMilliseconds(30);
@@ -144,6 +149,53 @@ namespace HuntAndPeck.NativeMethods
                     SetCursorPos(previous.X, previous.Y);
                 }
             }
+        }
+
+        /// <summary>
+        /// Moves the cursor to the screen point (physical pixels) and leaves it there, e.g. to show a tooltip
+        /// </summary>
+        /// <remarks>Held modifiers (the Alt that chose the hover) are not waited for: no button is pressed</remarks>
+        /// <exception cref="InvalidOperationException">The cursor could not be moved</exception>
+        public static void MoveTo(int x, int y)
+        {
+            if (!SetCursorPos(x, y))
+            {
+                throw new InvalidOperationException(string.Format("SetCursorPos failed, error {0}", Marshal.GetLastWin32Error()));
+            }
+        }
+
+        /// <summary>
+        /// Turns the mouse wheel at the cursor, which scrolls the window under it whichever window has the keyboard
+        /// </summary>
+        /// <param name="vertical">Wheel delta, positive scrolls up (120 is one notch); 0 for none</param>
+        /// <param name="horizontal">Horizontal wheel delta, positive scrolls right; 0 for none</param>
+        /// <exception cref="InvalidOperationException">The input was blocked (e.g. by UIPI)</exception>
+        public static void Wheel(int vertical, int horizontal)
+        {
+            var inputs = new List<INPUT>();
+            if (vertical != 0)
+            {
+                inputs.Add(WheelInput(MOUSEEVENTF_WHEEL, vertical));
+            }
+            if (horizontal != 0)
+            {
+                inputs.Add(WheelInput(MOUSEEVENTF_HWHEEL, horizontal));
+            }
+            if (inputs.Count == 0)
+            {
+                return;
+            }
+            var sent = SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf(typeof(INPUT)));
+            if (sent != inputs.Count)
+            {
+                throw new InvalidOperationException(string.Format("SendInput sent {0} of {1} wheel inputs, error {2}", sent, inputs.Count, Marshal.GetLastWin32Error()));
+            }
+        }
+
+        private static INPUT WheelInput(uint flags, int delta)
+        {
+            // mouseData is a DWORD holding a signed delta
+            return new INPUT { type = INPUT_MOUSE, u = new InputUnion { mi = new MOUSEINPUT { dwFlags = flags, mouseData = unchecked((uint)delta) } } };
         }
 
         /// <summary>

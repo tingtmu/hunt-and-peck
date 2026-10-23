@@ -149,19 +149,29 @@ namespace HuntAndPeck.ViewModels
         /// <summary>
         /// The mouse action chosen by the modifiers held for the typed letter, else null: the matched hint is
         /// clicked that way instead of using its UI Automation action. Shift: left click (for elements whose action
-        /// silently does nothing), Ctrl: right-click, Ctrl+Shift: double-click. Set by the view.
+        /// silently does nothing), Ctrl: right-click, Ctrl+Shift: double-click, Alt: hover. Set by the view.
         /// </summary>
         public MouseAction? ForcedAction { get; set; }
 
-        /// <summary>The <see cref="ForcedAction"/> for the modifiers held with a typed letter</summary>
-        public static MouseAction? ForcedActionFor(bool shift, bool ctrl)
+        /// <summary>
+        /// The <see cref="ForcedAction"/> for the modifiers held with a typed letter. Ctrl wins over Alt, as
+        /// Ctrl+Alt is AltGr on some keyboard layouts.
+        /// </summary>
+        public static MouseAction? ForcedActionFor(bool shift, bool ctrl, bool alt = false)
         {
             if (ctrl)
             {
                 return shift ? MouseAction.DoubleClick : MouseAction.RightClick;
             }
+            if (alt)
+            {
+                return MouseAction.Hover;
+            }
             return shift ? MouseAction.LeftClick : (MouseAction?)null;
         }
+
+        /// <summary>True once a forced <see cref="MouseAction.Hover"/> moved the cursor onto the chosen element</summary>
+        public bool Hovered { get; private set; }
 
         /// <summary>
         /// Invokes the hint (see <see cref="InvokeThenCloseAsync"/>), then, if its action failed in a way a mouse
@@ -177,9 +187,12 @@ namespace HuntAndPeck.ViewModels
             }
             _invoked = true;
 
+            var hovering = false;
             if (ForcedAction.HasValue)
             {
-                hint = hint.CreateClickHint(ForcedAction.Value) ?? hint;
+                var forced = hint.CreateClickHint(ForcedAction.Value);
+                hovering = forced != null && ForcedAction == MouseAction.Hover;
+                hint = forced ?? hint;
             }
 
             // Published before closing, covering any fallback click: headless mode reads PendingInvocation
@@ -189,7 +202,9 @@ namespace HuntAndPeck.ViewModels
             try
             {
                 var stopwatch = Stopwatch.StartNew();
-                if (await InvokeThenCloseAsync(hint) || !hint.ClicksOnFailure)
+                var succeeded = await InvokeThenCloseAsync(hint);
+                Hovered = succeeded && hovering;
+                if (succeeded || !hint.ClicksOnFailure)
                 {
                     return;
                 }

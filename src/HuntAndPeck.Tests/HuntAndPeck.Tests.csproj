@@ -86,6 +86,7 @@
     <Compile Include="Services\HintDedupTest.cs" />
     <Compile Include="Services\HintLabelServiceTest.cs" />
     <Compile Include="Services\HintOrderingTest.cs" />
+    <Compile Include="Services\HoverScrollerTest.cs" />
     <Compile Include="Services\MenuPopupWatcherTest.cs" />
     <Compile Include="ViewModels\MenuHintFollowerTest.cs" />
     <Compile Include="Services\UiAutomationHintKindSelectorTest.cs" />
