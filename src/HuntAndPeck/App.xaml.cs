@@ -97,6 +97,8 @@ namespace HuntAndPeck
             catch (InvalidOperationException ex)
             {
                 Trace.TraceWarning("Menu: no hints, the keyboard hook could not be installed: {0}", ex.Message);
+                // Its handle already exists (EnsureHandle)
+                view.Close();
                 return;
             }
 
