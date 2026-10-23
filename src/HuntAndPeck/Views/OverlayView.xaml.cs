@@ -15,6 +15,16 @@ namespace HuntAndPeck.Views
 
             // Read per overlay, so a theme change applies from the next hotkey press
             OverlayTheme.ForSystem().ApplyTo(Resources);
+
+            // Before the first render: the view model is set before the window is shown
+            DataContextChanged += (sender, e) =>
+            {
+                var vm = e.NewValue as OverlayViewModel;
+                if (vm != null)
+                {
+                    HintColors.For(vm.HintStyle, OverlayTheme.SystemIsLight()).ApplyTo(Resources);
+                }
+            };
         }
 
         private void OverlayView_OnPreviewKeyDown(object sender, KeyEventArgs e)

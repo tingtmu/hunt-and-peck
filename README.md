@@ -22,6 +22,7 @@ Right-click (or left-click) the tray icon and select `Options`:
   another app already uses the combination, the window says so and the old hotkey stays active.
 - **Letters**: the letters used for hint labels, 2-26 different letters A-Z (default `SADFJKLEWCMPGH`).
 - **Font size**: hint label size, 6-72 (default 14).
+- **Hint style**: hint label colours: classic yellow (default), follow the Windows light/dark theme, or high contrast.
 
 Changes apply when you press `OK`; `Cancel` (or Esc) discards them.
 

@@ -110,7 +110,8 @@ namespace HuntAndPeck
                     return;
                 }
 
-                var vm = new OverlayViewModel(session, _hintLabelService, _hintProviderService.InvokeHintAsync, _settings.Load().FontSize);
+                var settings = _settings.Load();
+                var vm = new OverlayViewModel(session, _hintLabelService, _hintProviderService.InvokeHintAsync, settings.FontSize, settings.HintStyle);
                 var view = CreateOverlayView(vm);
                 view.Closed += async (sender, args) =>
                 {

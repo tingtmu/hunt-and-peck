@@ -224,8 +224,8 @@ namespace HuntAndPeck.ViewModels
 
         private OverlayViewModel CreateOverlayViewModel(HintSession session)
         {
-            var fontSize = _settings.Load().FontSize;
-            return new OverlayViewModel(session, _hintLabelService, _hintProviderService.InvokeHintAsync, fontSize);
+            var settings = _settings.Load();
+            return new OverlayViewModel(session, _hintLabelService, _hintProviderService.InvokeHintAsync, settings.FontSize, settings.HintStyle);
         }
 
         /// <summary>

@@ -21,6 +21,7 @@ namespace HuntAndPeck.ViewModels
         private readonly Action<bool> _suspendHotKeys;
         private string _fontSizeText;
         private string _fontSizeError;
+        private HintStyle _hintStyle;
         private string _hintAlphabetText;
         private string _hintAlphabetError;
         private string _saveError;
@@ -42,6 +43,7 @@ namespace HuntAndPeck.ViewModels
             _original = settings.Load();
 
             _fontSizeText = FontSizeSetting.Format(_original.FontSize);
+            _hintStyle = _original.HintStyle;
             _hintAlphabetText = _original.HintAlphabet;
             MainHotKey = new HotKeyEditorViewModel(_original.MainHotKey, UserSettingsSnapshot.Defaults.MainHotKey);
             TaskbarHotKey = new HotKeyEditorViewModel(_original.TaskbarHotKey, UserSettingsSnapshot.Defaults.TaskbarHotKey);
@@ -72,6 +74,20 @@ namespace HuntAndPeck.ViewModels
         public string FontSizeHelp =>
             string.Format(CultureInfo.InvariantCulture, "{0} to {1}. Default: {2}",
                 FontSizeSetting.Min, FontSizeSetting.Max, FontSizeSetting.Default);
+
+        /// <summary>The hint styles with their display names</summary>
+        public IReadOnlyList<KeyValuePair<HintStyle, string>> HintStyleChoices { get; } = new[]
+        {
+            new KeyValuePair<HintStyle, string>(HintStyle.Classic, "Classic yellow"),
+            new KeyValuePair<HintStyle, string>(HintStyle.Theme, "Follow Windows theme"),
+            new KeyValuePair<HintStyle, string>(HintStyle.HighContrast, "High contrast")
+        };
+
+        public HintStyle HintStyle
+        {
+            get { return _hintStyle; }
+            set { _hintStyle = value; NotifyOfPropertyChange(); }
+        }
 
         public string HintAlphabetText
         {
@@ -187,7 +203,7 @@ namespace HuntAndPeck.ViewModels
             {
                 return null;
             }
-            return new UserSettingsSnapshot(fontSize, alphabet, MainHotKey.Combination, TaskbarHotKey.Combination);
+            return new UserSettingsSnapshot(fontSize, alphabet, MainHotKey.Combination, TaskbarHotKey.Combination, HintStyle);
         }
 
         /// <returns>

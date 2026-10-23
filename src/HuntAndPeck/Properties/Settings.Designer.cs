@@ -83,5 +83,17 @@ namespace HuntAndPeck.Properties {
         }
     }
 
+    [global::System.Configuration.UserScopedSettingAttribute()]
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+    [global::System.Configuration.DefaultSettingValueAttribute("Classic")]
+    public string HintStyle {
+        get {
+            return ((string)(this["HintStyle"]));
+        }
+        set {
+            this["HintStyle"] = value;
+        }
+    }
+
     }
 }
