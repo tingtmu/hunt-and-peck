@@ -24,6 +24,9 @@ Right-click (or left-click) the tray icon and select `Options`:
 - **Font size**: hint label size, 6-72 (default 14).
 - **Hint style**: hint label colours: classic yellow (default), follow the Windows light/dark theme, or high contrast.
 
+The window also lists the keys that work while the hints are shown (`Overlay keys`; read-only). The window
+keeps its size and scrolls if its content doesn't fit.
+
 Changes apply when you press `OK`; `Cancel` (or Esc) discards them.
 
 The tray menu's `Start with Windows` item starts HuntAndPeck at sign-in (an entry under

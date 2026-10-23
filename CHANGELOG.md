@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Options: an "Overlay keys" section lists the keys that work with the hints shown (Shift / Ctrl / Ctrl+Shift
+  with the last letter, Backspace, Esc, menu keys). The window has a fixed size and scrolls; OK and Cancel stay visible.
+
 ## 1.9.0 (2026-10-23)
 
 ### Mouse actions

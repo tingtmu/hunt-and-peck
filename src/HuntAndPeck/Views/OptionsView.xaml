@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:HuntAndPeck.Views"
         Title="{Binding DisplayName}"
-        SizeToContent="WidthAndHeight"
+        Width="488" Height="460"
+        MaxHeight="{x:Static SystemParameters.MaximizedPrimaryScreenHeight}"
         ResizeMode="NoResize"
         ShowInTaskbar="True"
         WindowStartupLocation="CenterScreen"
@@ -42,7 +43,16 @@
         </Style>
     </Window.Resources>
 
-    <StackPanel Margin="12" Width="440">
+    <!-- The settings scroll; OK and Cancel stay in view below them -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                      PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
+    <StackPanel Margin="12,12,12,0">
         <GroupBox Header="Hotkeys">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -131,11 +141,35 @@
             </Grid>
         </GroupBox>
 
-        <TextBlock Style="{StaticResource ErrorText}" Text="{Binding SaveError}" Margin="0,0,0,8" />
-
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="OK" IsDefault="True" Command="{Binding SaveCommand}" />
-            <Button Content="Cancel" IsCancel="True" Margin="8,0,0,0" />
-        </StackPanel>
+        <GroupBox Header="Overlay keys">
+            <StackPanel Grid.IsSharedSizeScope="True">
+                <ItemsControl ItemsSource="{Binding OverlayKeys}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="OverlayKey" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding Key}" FontWeight="SemiBold" Margin="0,0,16,0" />
+                                <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Style="{StaticResource HelpText}"
+                           Text="Hold the modifiers while typing the last letter of a hint; they can stay held. These keys are fixed." />
+            </StackPanel>
+        </GroupBox>
     </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="1" Margin="12,8,12,12">
+            <TextBlock Style="{StaticResource ErrorText}" Text="{Binding SaveError}" Margin="0,0,0,8" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="OK" IsDefault="True" Command="{Binding SaveCommand}" />
+                <Button Content="Cancel" IsCancel="True" Margin="8,0,0,0" />
+            </StackPanel>
+        </StackPanel>
+    </Grid>
 </Window>

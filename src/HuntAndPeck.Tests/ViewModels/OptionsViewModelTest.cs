@@ -34,6 +34,17 @@ namespace HuntAndPeck.Tests.ViewModels
         }
 
         [Fact]
+        public void OverlayKeys_ListTheMouseActionModifiers()
+        {
+            var keys = Create().OverlayKeys.ToDictionary(x => x.Key, x => x.Value);
+
+            Assert.Contains("Left click", keys["Shift + last letter"]);
+            Assert.Contains("Right-click", keys["Ctrl + last letter"]);
+            Assert.Contains("Double-click", keys["Ctrl + Shift + last letter"]);
+            Assert.True(keys.ContainsKey("Esc"));
+        }
+
+        [Fact]
         public void EditsWithoutSave_PersistNothing()
         {
             var vm = Create();

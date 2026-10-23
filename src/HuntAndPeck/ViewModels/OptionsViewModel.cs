@@ -55,6 +55,18 @@ namespace HuntAndPeck.ViewModels
         public HotKeyEditorViewModel MainHotKey { get; }
         public HotKeyEditorViewModel TaskbarHotKey { get; }
 
+        /// <summary>The keys that work while the hint overlay is open, as (keys, what they do); not configurable</summary>
+        public IReadOnlyList<KeyValuePair<string, string>> OverlayKeys { get; } = new[]
+        {
+            new KeyValuePair<string, string>("Letters", "Type a hint's letters to select it"),
+            new KeyValuePair<string, string>("Backspace", "Delete the last typed letter"),
+            new KeyValuePair<string, string>("Esc", "Close the hints"),
+            new KeyValuePair<string, string>("Shift + last letter", "Left click (for elements that ignore their action)"),
+            new KeyValuePair<string, string>("Ctrl + last letter", "Right-click (context menu)"),
+            new KeyValuePair<string, string>("Ctrl + Shift + last letter", "Double-click (e.g. open a file)"),
+            new KeyValuePair<string, string>("In a menu", "Letters pick an item, Esc hides the hints, other keys go to the menu")
+        };
+
         /// <summary>Suggested font sizes; any number in range can be typed</summary>
         public IReadOnlyList<string> FontSizeChoices { get; } =
             Enumerable.Range(8, 17).Select(x => FontSizeSetting.Format(x)).ToList();
