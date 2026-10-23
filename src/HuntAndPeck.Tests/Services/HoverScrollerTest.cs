@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using HuntAndPeck.NativeMethods;
 using HuntAndPeck.Services;
 using Xunit;
 
@@ -116,6 +117,59 @@ namespace HuntAndPeck.Tests.Services
         }
 
         [Fact]
+        public void MouseMoved_ArrowPassesThrough_AndStops()
+        {
+            var fake = new FakeSession();
+            fake.Cursor = new POINT(100 + HoverScroller.MaxCursorDrift + 1, 200);
+
+            var swallowed = fake.Press(Down);
+
+            Assert.False(swallowed);
+            Assert.Empty(fake.Wheels);
+            Assert.False(fake.Scroller.Active);
+            Assert.Equal(1, fake.HookDisposals);
+        }
+
+        [Fact]
+        public void CursorJitterWithinDrift_KeepsScrolling()
+        {
+            var fake = new FakeSession();
+            fake.Cursor = new POINT(100 - HoverScroller.MaxCursorDrift, 200 + HoverScroller.MaxCursorDrift);
+
+            Assert.True(fake.Press(Down));
+            Assert.True(fake.Scroller.Active);
+        }
+
+        [Theory]
+        [InlineData(0x10, Down)] // Shift+Down: extend the selection
+        [InlineData(0x11, Down)] // Ctrl+Down: the app's scroll-line key; as Ctrl+wheel it would zoom
+        [InlineData(0x11, PageDown)]
+        [InlineData(0x5B, Left)] // Win+Left: snap the window
+        [InlineData(0x5C, Up)]
+        public void ScrollKeyWithChordModifier_PassesThrough_AndStops(int modifier, int virtualKey)
+        {
+            var fake = new FakeSession();
+            fake.Held.Add(modifier);
+
+            var swallowed = fake.Press(virtualKey);
+
+            Assert.False(swallowed);
+            Assert.Empty(fake.Wheels);
+            Assert.False(fake.Scroller.Active);
+        }
+
+        [Fact]
+        public void ScrollKeyWithAltStillHeld_Scrolls()
+        {
+            // Alt is often still held from the Alt + last letter that hovered
+            var fake = new FakeSession();
+            fake.Held.Add(0x12);
+
+            Assert.True(fake.Press(Down));
+            Assert.Equal(Tuple.Create(-HoverScroller.WheelDelta, 0), Assert.Single(fake.Wheels));
+        }
+
+        [Fact]
         public void ForegroundChanged_ModifierDoesNotStop()
         {
             var fake = new FakeSession();
@@ -199,10 +253,17 @@ namespace HuntAndPeck.Tests.Services
                         }
                         Wheels.Add(Tuple.Create(vertical, horizontal));
                     },
-                    () => Foreground);
+                    () => Foreground,
+                    () => Cursor,
+                    key => Held.Contains(key));
             }
 
             public HoverScroller Scroller { get; }
+
+            public POINT Cursor { get; set; } = new POINT(100, 200);
+
+            /// <summary>Virtual keys held now</summary>
+            public HashSet<int> Held { get; } = new HashSet<int>();
 
             public List<Tuple<int, int>> Wheels { get; } = new List<Tuple<int, int>>();
 

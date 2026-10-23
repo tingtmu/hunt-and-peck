@@ -254,7 +254,7 @@ namespace HuntAndPeck.ViewModels
         /// </summary>
         private void FollowUp(HintSession session, OverlayViewModel vm, HashSet<IntPtr> before)
         {
-            if (vm.ForcedAction == MouseAction.Hover)
+            if (vm.Hovering)
             {
                 StartHoverScroll(vm);
             }

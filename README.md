@@ -66,7 +66,7 @@ Where things live:
       | `Shift` | left click, for an element that ignores its UI Automation action |
       | `Ctrl` | right-click (context menu) |
       | `Ctrl + Shift` | double-click (e.g. open a file) |
-      | `Alt` | hover: the mouse moves there and stays (tooltips, hover menus). Afterwards the arrow keys, `PgUp` and `PgDn` scroll the pane under the mouse, whichever window has focus, until `Esc` or any other key |
+      | `Alt` | hover: the mouse moves there and stays (tooltips, hover menus). Afterwards the arrow keys, `PgUp` and `PgDn` scroll the pane under the mouse, whichever window has focus, until `Esc`, any other key or a mouse move |
     - Menus: when a hint opens a menu or dropdown (a right-click menu, a submenu), its hints appear on their
       own and the menu stays open. Letters pick an item, `Esc` hides the hints, and any other key (arrows,
       `Enter`) goes to the menu as usual.

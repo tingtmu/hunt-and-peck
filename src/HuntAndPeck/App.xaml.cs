@@ -163,6 +163,13 @@ namespace HuntAndPeck
             new NoticeView { DataContext = vm }.Show();
         }
 
+        /// <summary>The cursor position; (0, 0) if it can't be read, which stops any scrolling after a hover</summary>
+        private static POINT CursorPosition()
+        {
+            POINT point;
+            return MonitorQueries.GetCursorPos(out point) ? point : new POINT(0, 0);
+        }
+
         private static void ShowAbout(string text)
         {
             MessageBox.Show(text, ShellViewModel.AboutTitle, MessageBoxButton.OK, MessageBoxImage.Information);
@@ -257,7 +264,7 @@ namespace HuntAndPeck
                 ShowNotice,
                 _menuPopups,
                 ShowMenuOverlay,
-                () => new HoverScroller(onKeyDown => new KeyboardHook(onKeyDown), MouseInput.Wheel, User32.GetForegroundWindow));
+                () => new HoverScroller(onKeyDown => new KeyboardHook(onKeyDown), MouseInput.Wheel, User32.GetForegroundWindow, CursorPosition, KeyboardHook.IsKeyDown));
 
             var shellView = new ShellView
             {

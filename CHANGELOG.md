@@ -5,7 +5,8 @@
 ### Mouse actions
 - **Alt + last letter** hovers: the mouse moves to the element and stays there (tooltips, hover menus). Then the
   arrow keys, PgUp and PgDn scroll the pane under the mouse with the mouse wheel, whichever window has focus.
-  Esc or any other key stops scrolling (and goes through as usual), so Alt+; still works.
+  Esc, any other key (including Ctrl/Shift + arrow) or moving the mouse stops scrolling; the key goes through as
+  usual, so Alt+; still works.
 
 ### Options
 - An "Overlay keys" section lists the keys that work with the hints shown (Shift / Ctrl / Ctrl+Shift / Alt

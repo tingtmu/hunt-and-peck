@@ -170,6 +170,12 @@ namespace HuntAndPeck.ViewModels
             return shift ? MouseAction.LeftClick : (MouseAction?)null;
         }
 
+        /// <summary>
+        /// True once the chosen hint is being hovered (<see cref="MouseAction.Hover"/>); unlike <see cref="ForcedAction"/>,
+        /// unchanged by keys pressed after the choice
+        /// </summary>
+        public bool Hovering { get; private set; }
+
         /// <summary>True once a forced <see cref="MouseAction.Hover"/> moved the cursor onto the chosen element</summary>
         public bool Hovered { get; private set; }
 
@@ -187,11 +193,10 @@ namespace HuntAndPeck.ViewModels
             }
             _invoked = true;
 
-            var hovering = false;
             if (ForcedAction.HasValue)
             {
                 var forced = hint.CreateClickHint(ForcedAction.Value);
-                hovering = forced != null && ForcedAction == MouseAction.Hover;
+                Hovering = forced != null && ForcedAction == MouseAction.Hover;
                 hint = forced ?? hint;
             }
 
@@ -203,7 +208,7 @@ namespace HuntAndPeck.ViewModels
             {
                 var stopwatch = Stopwatch.StartNew();
                 var succeeded = await InvokeThenCloseAsync(hint);
-                Hovered = succeeded && hovering;
+                Hovered = succeeded && Hovering;
                 if (succeeded || !hint.ClicksOnFailure)
                 {
                     return;

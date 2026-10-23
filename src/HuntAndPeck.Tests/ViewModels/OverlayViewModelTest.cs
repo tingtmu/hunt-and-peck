@@ -316,6 +316,32 @@ namespace HuntAndPeck.Tests.ViewModels
         }
 
         [Fact]
+        public void Match_ForcedHover_IsHovering_EvenIfModifiersChangeAfterTheChoice()
+        {
+            var vm = CreateViewModel(new FallbackFakeHint("original", new ClickFakeHint()), new EventRecorder(), hint => Task.FromResult(true));
+            vm.ForcedAction = MouseAction.Hover;
+
+            vm.MatchString = vm.Hints[0].Label;
+            vm.ForcedAction = null; // the view sets it on every key press, e.g. one after the choice
+
+            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            Assert.True(vm.Hovering);
+        }
+
+        [Fact]
+        public void Match_Plain_IsNotHovering_EvenIfAltIsPressedAfterTheChoice()
+        {
+            var vm = CreateViewModel(new FallbackFakeHint("original", new ClickFakeHint()), new EventRecorder(), hint => Task.FromResult(true));
+
+            vm.MatchString = vm.Hints[0].Label;
+            vm.ForcedAction = MouseAction.Hover; // e.g. Alt of Alt+Tab within the close delay
+
+            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            Assert.False(vm.Hovering);
+            Assert.False(vm.Hovered);
+        }
+
+        [Fact]
         public void Match_ForcedRightClick_IsNotHovered()
         {
             var original = new FallbackFakeHint("original", new ClickFakeHint());
