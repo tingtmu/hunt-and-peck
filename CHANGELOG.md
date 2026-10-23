@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.9.0 (unreleased)
+## 1.9.0 (2026-10-23)
 
 ### Mouse actions
 - **Ctrl + last letter** right-clicks the element (context menus); **Ctrl+Shift + last letter** double-clicks it.
