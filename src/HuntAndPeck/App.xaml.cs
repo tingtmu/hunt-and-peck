@@ -85,6 +85,9 @@ namespace HuntAndPeck
             var view = CreateOverlayView(vm);
             view.Passive = true;
             view.ShowActivated = false;
+            // Created hidden first, so it is non-activating (OverlayView.OnSourceInitialized) before Show: a window
+            // created by Show was activated, taking the foreground and so closing the menu
+            new WindowInteropHelper(view).EnsureHandle();
 
             KeyboardHook hook;
             try
@@ -97,11 +100,13 @@ namespace HuntAndPeck
                 return;
             }
 
+            var shown = Stopwatch.StartNew();
             var menuCheck = new DispatcherTimer { Interval = MenuCheckInterval };
             menuCheck.Tick += (sender, e) =>
             {
                 if (!_menuPopups.AnyVisible(menus))
                 {
+                    Trace.TraceInformation("Menu: the menu closed after {0} ms, hiding its hints", shown.ElapsedMilliseconds);
                     view.Close();
                 }
             };

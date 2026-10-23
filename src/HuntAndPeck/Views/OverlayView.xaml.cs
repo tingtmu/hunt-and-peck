@@ -54,7 +54,35 @@ namespace HuntAndPeck.Views
                 var hWnd = new WindowInteropHelper(this).Handle;
                 WindowEnumeration.SetExStyle(hWnd, WindowEnumeration.GetExStyle(hWnd)
                     | WindowEnumeration.WS_EX_NOACTIVATE | WindowEnumeration.WS_EX_TRANSPARENT | WindowEnumeration.WS_EX_TOOLWINDOW);
+
+                // Keyboard focus moved into the match box would activate this window, taking the foreground
+                // from the menu's app; its text comes from the hook instead
+                FocusManager.SetFocusedElement(this, null);
+                MatchStringControl.Focusable = false;
+                HwndSource.FromHwnd(hWnd)?.AddHook(PassiveWndProc);
             }
+        }
+
+        private const int WM_ACTIVATE = 0x0006;
+        private const int WM_MOUSEACTIVATE = 0x0021;
+        private const int MA_NOACTIVATE = 3;
+
+        private bool _activationLogged;
+
+        private IntPtr PassiveWndProc(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == WM_MOUSEACTIVATE)
+            {
+                handled = true;
+                return new IntPtr(MA_NOACTIVATE);
+            }
+            if (msg == WM_ACTIVATE && (wParam.ToInt64() & 0xFFFF) != 0 && !_activationLogged)
+            {
+                // Must not happen: the menu under the overlay closes. The stack shows who activated it.
+                _activationLogged = true;
+                Trace.TraceWarning("Menu: the hint overlay was activated, closing the menu: {0}", Environment.StackTrace);
+            }
+            return IntPtr.Zero;
         }
 
         /// <summary>
@@ -96,6 +124,7 @@ namespace HuntAndPeck.Views
             var alt = KeyboardHook.IsKeyDown(VkMenu);
             if (key < Key.A || key > Key.Z || alt)
             {
+                Trace.TraceInformation("Menu: key {0:X2} hides the hints and goes to the menu", virtualKey);
                 Close();
                 return false;
             }

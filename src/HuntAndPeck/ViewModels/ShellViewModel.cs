@@ -303,6 +303,7 @@ namespace HuntAndPeck.ViewModels
         {
             if (_sessionActive)
             {
+                Trace.TraceInformation("Hotkey ignored: a hint session is still active");
                 return;
             }
 

@@ -4,7 +4,7 @@
 
 ### Mouse actions
 - **Ctrl + last letter** right-clicks the element (context menus); **Ctrl+Shift + last letter** double-clicks it.
-  Shift + last letter still left-clicks.
+  Shift + last letter still left-clicks. Shift/Ctrl may stay held: HAP releases them for the click.
 - **Menu hints:** when a hint opens a menu or dropdown (e.g. a Ctrl right-click, a submenu), its hints appear
   automatically without closing it. Letters pick, Esc hides the hints, and any other key (arrows, Enter) goes
   to the menu as usual.
