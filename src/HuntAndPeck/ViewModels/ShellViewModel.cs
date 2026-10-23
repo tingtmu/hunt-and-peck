@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security;
+using System.Threading;
 using System.Threading.Tasks;
 using HuntAndPeck.Configuration;
 using HuntAndPeck.Models;
@@ -31,6 +32,10 @@ namespace HuntAndPeck.ViewModels
         private readonly IUserSettings _settings;
         private readonly Action<string> _notifyWarning;
         private readonly Action<NoticeViewModel> _showNotice;
+        private readonly MenuHintFollower _menuHints;
+
+        /// <summary>Stops following a menu (see <see cref="StartFollowingMenus"/>); null when not following</summary>
+        private CancellationTokenSource _menuFollowing;
         private readonly BarsHintSource _barHints;
         private bool _startWithWindows;
         private string _toolTipText;
@@ -53,9 +58,15 @@ namespace HuntAndPeck.ViewModels
             IStartupRegistrationService startupRegistration,
             IUserSettings settings,
             Action<string> notifyWarning,
-            Action<NoticeViewModel> showNotice = null)
+            Action<NoticeViewModel> showNotice = null,
+            MenuPopupWatcher menuPopups = null,
+            Action<OverlayViewModel, IReadOnlyList<IntPtr>> showMenuOverlay = null)
         {
             _showNotice = showNotice;
+            if (menuPopups != null && showMenuOverlay != null)
+            {
+                _menuHints = new MenuHintFollower(menuPopups, hintProviderService, CreateOverlayViewModel, showMenuOverlay, Task.Delay, TryBeginMenuSession, EndMenuSession);
+            }
             _showOverlay = showOverlay;
             _showDebugOverlay = showDebugOverlay;
             _showOptions = showOptions;
@@ -216,14 +227,66 @@ namespace HuntAndPeck.ViewModels
 
         private void ShowHintOverlay(HintSession session)
         {
-            _showOverlay(CreateOverlayViewModel(session));
+            var before = _menuHints?.Snapshot();
+            var vm = CreateOverlayViewModel(session);
+            _showOverlay(vm);
+            StartFollowingMenus(session, vm, before);
         }
 
         private void ShowBarsOverlay(HintSession session)
         {
+            var before = _menuHints?.Snapshot();
             var vm = CreateOverlayViewModel(session);
             _showOverlay(vm);
             _barHints.OnOverlayClosed(session, vm.HintInvoked);
+            StartFollowingMenus(session, vm, before);
+        }
+
+        /// <summary>
+        /// Follows any menu the chosen hint opens, in the background: the hotkey keeps working meanwhile, and
+        /// pressing it stops the following (<see cref="RunSession"/>)
+        /// </summary>
+        private async void StartFollowingMenus(HintSession session, OverlayViewModel vm, HashSet<IntPtr> before)
+        {
+            if (_menuHints == null || !vm.HintInvoked)
+            {
+                return;
+            }
+
+            var following = new CancellationTokenSource();
+            _menuFollowing = following;
+            try
+            {
+                await _menuHints.FollowAsync(session, vm, before, following.Token);
+            }
+            catch (Exception ex)
+            {
+                // async void: an escaping exception would surface on the dispatcher
+                _reportError("Following a menu failed", ex);
+            }
+            finally
+            {
+                if (_menuFollowing == following)
+                {
+                    _menuFollowing = null;
+                }
+            }
+        }
+
+        /// <summary>Claims the session for a menu overlay; false if another session started meanwhile</summary>
+        private bool TryBeginMenuSession(CancellationToken following)
+        {
+            if (_sessionActive || following.IsCancellationRequested)
+            {
+                return false;
+            }
+            _sessionActive = true;
+            return true;
+        }
+
+        private void EndMenuSession()
+        {
+            _sessionActive = false;
         }
 
         private OverlayViewModel CreateOverlayViewModel(HintSession session)
@@ -243,6 +306,8 @@ namespace HuntAndPeck.ViewModels
                 return;
             }
 
+            // The user moved on: a menu that appears now is no longer theirs to follow
+            _menuFollowing?.Cancel();
             _sessionActive = true;
             try
             {

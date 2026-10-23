@@ -363,6 +363,16 @@ namespace HuntAndPeck.Tests.ViewModels
 
             public Task<HintSession> EnumBarHintsAsync(IReadOnlyList<IntPtr> windows, System.Windows.Rect monitor) => EnumHintsAsync();
 
+            public List<IReadOnlyList<IntPtr>> PopupEnumerations { get; } = new List<IReadOnlyList<IntPtr>>();
+
+            public HintSession PopupSession { get; set; }
+
+            public Task<HintSession> EnumPopupHintsAsync(IReadOnlyList<IntPtr> windows)
+            {
+                PopupEnumerations.Add(windows);
+                return Task.FromResult(PopupSession);
+            }
+
             public Task<bool> InvokeHintAsync(Hint hint) => Task.FromResult(true);
         }
 

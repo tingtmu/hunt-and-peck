@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -6,6 +7,7 @@ using System.Security;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using HuntAndPeck.Configuration;
 using HuntAndPeck.Diagnostics;
 using HuntAndPeck.Models;
@@ -35,6 +37,8 @@ namespace HuntAndPeck
         private KeyListenerService _keyListenerService;
         private TrayNotifier _trayNotifier;
         private GlobalExceptionHandlers _exceptionHandlers;
+        private readonly MenuPopupWatcher _menuPopups = new MenuPopupWatcher(new TopLevelWindowSource(), Task.Delay, () => MenuClock.Elapsed);
+        private static readonly Stopwatch MenuClock = Stopwatch.StartNew();
 
         /// <summary>
         /// Creates the overlay window; the view model may close it at any time, also after it already closed
@@ -66,6 +70,53 @@ namespace HuntAndPeck
         private void ShowOverlay(OverlayViewModel vm)
         {
             CreateOverlayView(vm).ShowDialog();
+        }
+
+        /// <summary>How often the menu overlay checks that its menu is still open</summary>
+        private static readonly TimeSpan MenuCheckInterval = TimeSpan.FromMilliseconds(150);
+
+        /// <summary>
+        /// Shows hints over an open menu until one is chosen, Esc or another key is pressed, or the menu closes.
+        /// Blocks like <see cref="ShowOverlay"/>. The overlay never takes the foreground (the menu would close), so
+        /// its keys come from a keyboard hook installed only while it is shown.
+        /// </summary>
+        private void ShowMenuOverlay(OverlayViewModel vm, IReadOnlyList<IntPtr> menus)
+        {
+            var view = CreateOverlayView(vm);
+            view.Passive = true;
+            view.ShowActivated = false;
+
+            KeyboardHook hook;
+            try
+            {
+                hook = new KeyboardHook(view.HandleHookKey);
+            }
+            catch (InvalidOperationException ex)
+            {
+                Trace.TraceWarning("Menu: no hints, the keyboard hook could not be installed: {0}", ex.Message);
+                return;
+            }
+
+            var menuCheck = new DispatcherTimer { Interval = MenuCheckInterval };
+            menuCheck.Tick += (sender, e) =>
+            {
+                if (!_menuPopups.AnyVisible(menus))
+                {
+                    view.Close();
+                }
+            };
+            var frame = new DispatcherFrame();
+            view.Closed += (sender, e) =>
+            {
+                menuCheck.Stop();
+                // Not inside the hook's own callback, which may be what closed the view
+                Dispatcher.BeginInvoke(new Action(hook.Dispose));
+                frame.Continue = false;
+            };
+
+            view.Show();
+            menuCheck.Start();
+            Dispatcher.PushFrame(frame);
         }
 
         private void ShowDebugOverlay(DebugOverlayViewModel vm)
@@ -196,7 +247,9 @@ namespace HuntAndPeck
                 startupRegistration,
                 _settings,
                 _trayNotifier.ShowWarning,
-                ShowNotice);
+                ShowNotice,
+                _menuPopups,
+                ShowMenuOverlay);
 
             var shellView = new ShellView
             {

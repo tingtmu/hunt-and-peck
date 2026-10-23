@@ -12,9 +12,16 @@ namespace HuntAndPeck.NativeMethods
         /// <summary>GetWindowLong(Ptr) index of the extended window styles</summary>
         public const int GWL_EXSTYLE = -20;
 
+        /// <summary>GetWindowLong(Ptr) index of the window styles</summary>
+        public const int GWL_STYLE = -16;
+
         public const uint WS_EX_TOPMOST = 0x00000008;
         public const uint WS_EX_TRANSPARENT = 0x00000020;
         public const uint WS_EX_TOOLWINDOW = 0x00000080;
+        public const uint WS_EX_NOACTIVATE = 0x08000000;
+
+        public const uint WS_POPUP = 0x80000000;
+        public const uint WS_CAPTION = 0x00C00000;
 
         /// <summary>Callback for <see cref="EnumWindows"/>; return true to continue enumerating</summary>
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -54,10 +61,34 @@ namespace HuntAndPeck.NativeMethods
         /// <summary>The window's extended styles (WS_EX_*)</summary>
         public static uint GetExStyle(IntPtr hWnd)
         {
+            return GetLong(hWnd, GWL_EXSTYLE);
+        }
+
+        /// <summary>The window's styles (WS_*)</summary>
+        public static uint GetStyle(IntPtr hWnd)
+        {
+            return GetLong(hWnd, GWL_STYLE);
+        }
+
+        /// <summary>Sets the window's extended styles (WS_EX_*)</summary>
+        public static void SetExStyle(IntPtr hWnd, uint exStyle)
+        {
+            if (IntPtr.Size == 8)
+            {
+                SetWindowLongPtr64(hWnd, GWL_EXSTYLE, new IntPtr(unchecked((int)exStyle)));
+            }
+            else
+            {
+                SetWindowLong32(hWnd, GWL_EXSTYLE, unchecked((int)exStyle));
+            }
+        }
+
+        private static uint GetLong(IntPtr hWnd, int index)
+        {
             // GetWindowLongPtr is only exported by 64-bit user32
             return IntPtr.Size == 8
-                ? unchecked((uint)GetWindowLongPtr64(hWnd, GWL_EXSTYLE).ToInt64())
-                : unchecked((uint)GetWindowLong32(hWnd, GWL_EXSTYLE));
+                ? unchecked((uint)GetWindowLongPtr64(hWnd, index).ToInt64())
+                : unchecked((uint)GetWindowLong32(hWnd, index));
         }
 
         /// <summary>The window's class name, else an empty string</summary>
@@ -72,5 +103,11 @@ namespace HuntAndPeck.NativeMethods
 
         [DllImport("user32.dll", EntryPoint = "GetWindowLongW")]
         private static extern int GetWindowLong32(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+        private static extern IntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+        [DllImport("user32.dll", EntryPoint = "SetWindowLongW")]
+        private static extern int SetWindowLong32(IntPtr hWnd, int nIndex, int dwNewLong);
     }
 }

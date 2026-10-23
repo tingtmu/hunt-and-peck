@@ -2,7 +2,9 @@
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media.Animation;
+using HuntAndPeck.NativeMethods;
 using HuntAndPeck.ViewModels;
 
 namespace HuntAndPeck.Views
@@ -35,6 +37,94 @@ namespace HuntAndPeck.Views
                 }
             };
         }
+
+        /// <summary>
+        /// Menu overlay: never activated and click-through, so the menu under it stays open; its keys come from a
+        /// keyboard hook (<see cref="HandleHookKey"/>). Set before the window is shown.
+        /// </summary>
+        public bool Passive { get; set; }
+
+        protected override bool TakesForeground => !Passive;
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            if (Passive)
+            {
+                var hWnd = new WindowInteropHelper(this).Handle;
+                WindowEnumeration.SetExStyle(hWnd, WindowEnumeration.GetExStyle(hWnd)
+                    | WindowEnumeration.WS_EX_NOACTIVATE | WindowEnumeration.WS_EX_TRANSPARENT | WindowEnumeration.WS_EX_TOOLWINDOW);
+            }
+        }
+
+        /// <summary>
+        /// A key pressed while this is a <see cref="Passive"/> overlay. Letters (with Shift/Ctrl as usual) and
+        /// Backspace work the hints, Esc closes them; any other key closes them and goes on to the menu, so the
+        /// menu's own keys (arrows, Enter, underlined letters after Esc) keep working.
+        /// </summary>
+        /// <returns>True if the key is used here and must not reach the menu</returns>
+        public bool HandleHookKey(int virtualKey)
+        {
+            if (_closed)
+            {
+                // The hook is removed just after the window closed
+                return false;
+            }
+
+            var key = KeyInterop.KeyFromVirtualKey(virtualKey);
+            switch (key)
+            {
+                case Key.Escape:
+                    Close();
+                    return true;
+                case Key.Back:
+                    var text = MatchStringControl.Text;
+                    if (text.Length > 0)
+                    {
+                        MatchStringControl.Text = text.Substring(0, text.Length - 1);
+                        MatchStringControl.CaretIndex = MatchStringControl.Text.Length;
+                    }
+                    return true;
+                case Key.LeftShift:
+                case Key.RightShift:
+                case Key.LeftCtrl:
+                case Key.RightCtrl:
+                    // Held for the next letter
+                    return false;
+            }
+
+            var alt = KeyboardHook.IsKeyDown(VkMenu);
+            if (key < Key.A || key > Key.Z || alt)
+            {
+                Close();
+                return false;
+            }
+
+            var vm = DataContext as OverlayViewModel;
+            if (vm != null)
+            {
+                vm.ForcedAction = OverlayViewModel.ForcedActionFor(KeyboardHook.IsKeyDown(VkShift), KeyboardHook.IsKeyDown(VkControl));
+            }
+            var letter = ((char)('A' + (key - Key.A))).ToString();
+            if (Accepts(letter))
+            {
+                MatchStringControl.Text += letter;
+                MatchStringControl.CaretIndex = MatchStringControl.Text.Length;
+            }
+            return true;
+        }
+
+        private bool _closed;
+
+        protected override void OnClosed(EventArgs e)
+        {
+            _closed = true;
+            base.OnClosed(e);
+        }
+
+        private const int VkShift = 0x10;
+        private const int VkControl = 0x11;
+        private const int VkMenu = 0x12;
 
         private void OverlayView_OnPreviewKeyDown(object sender, KeyEventArgs e)
         {

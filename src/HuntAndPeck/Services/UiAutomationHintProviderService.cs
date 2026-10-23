@@ -5,6 +5,7 @@ using HuntAndPeck.Services.Uia;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -65,6 +66,24 @@ namespace HuntAndPeck.Services
         {
             return _barEnumerator.EnumAsync(GetWindowBounds(windows), monitor);
         }
+        public async Task<HintSession> EnumPopupHintsAsync(IReadOnlyList<IntPtr> windows)
+        {
+            try
+            {
+                return await _executor.RunAsync(() => EnumPopupWindowHints(windows), EnumerationTimeout).ConfigureAwait(false);
+            }
+            catch (TimeoutException ex)
+            {
+                Trace.TraceWarning("Popup hint enumeration abandoned: {0}", ex.Message);
+                return null;
+            }
+            catch (Exception ex) when (IsShutdown(ex))
+            {
+                Trace.TraceInformation("Popup hint enumeration cancelled, UI Automation is shutting down: {0}", ex.Message);
+                return null;
+            }
+        }
+
         /// <remarks>
         /// Target failures (element gone, app hung/closed) and timeouts are logged and do not fault the task
         /// </remarks>
@@ -189,6 +208,36 @@ namespace HuntAndPeck.Services
             }
             bounds = raw;
             return true;
+        }
+
+        /// <summary>
+        /// Enumerates the hints of popup windows for one overlay over all of them. Runs on the UIA worker thread.
+        /// </summary>
+        /// <returns>A hint session, else null if none of the windows has bounds any more</returns>
+        private static HintSession EnumPopupWindowHints(IReadOnlyList<IntPtr> windows)
+        {
+            var targets = GetWindowBounds(windows);
+            if (targets.Count == 0)
+            {
+                return null;
+            }
+
+            var overlayBounds = HintBounds.UnionOf(targets.Select(x => x.Value));
+            var hints = new List<Hint>();
+            foreach (var target in targets)
+            {
+                var windowHints = WindowHintScanner.Scan(new WindowScanTarget(target.Key, target.Value, overlayBounds, UiAutomationHintFactory.CreateHint, false));
+                if (windowHints != null)
+                {
+                    hints.AddRange(windowHints);
+                }
+            }
+            return new HintSession
+            {
+                Hints = hints,
+                OwningWindow = targets[0].Key,
+                OwningWindowBounds = overlayBounds,
+            };
         }
 
         /// <summary>
