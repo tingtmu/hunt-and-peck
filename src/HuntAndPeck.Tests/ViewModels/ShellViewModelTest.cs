@@ -220,6 +220,28 @@ namespace HuntAndPeck.Tests.ViewModels
             }
         }
 
+        [Fact]
+        public void Hover_OnHintThatCannotHover_DoesNotStartScrolling()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var invoked = new List<Hint>();
+                var provider = new FakeHintProvider { Invoke = hint => { invoked.Add(hint); return Task.FromResult(true); } };
+                var keys = new FakeKeyListener();
+                var errors = new List<Exception>();
+                var scrolls = new List<FakeScroll>();
+                CreateShell(provider, keys, vm => Choose(vm, MouseAction.Hover), (context, ex) => errors.Add(ex), startHoverScroll: () => StartScroll(scrolls));
+
+                keys.Press();
+                var original = new UnclickableFakeHint();
+                provider.Pending[0].SetResult(new HintSession { Hints = new List<Hint> { original } });
+
+                Assert.Same(original, Assert.Single(invoked));
+                Assert.Empty(scrolls);
+                Assert.Empty(errors);
+            }
+        }
+
         [Theory]
         [InlineData(null)]
         [InlineData(MouseAction.RightClick)]
@@ -322,6 +344,19 @@ namespace HuntAndPeck.Tests.ViewModels
 
             /// <summary>Can be clicked (or hovered) instead, as a UI Automation hint can</summary>
             public override Hint CreateClickHint(MouseAction action) => new FakeHint();
+
+            public override void Invoke()
+            {
+            }
+        }
+
+        /// <summary>Has no click (or hover) variant, so a hover runs its own action</summary>
+        private sealed class UnclickableFakeHint : Hint
+        {
+            public UnclickableFakeHint()
+                : base(IntPtr.Zero, new System.Windows.Rect(0, 0, 10, 10))
+            {
+            }
 
             public override void Invoke()
             {
