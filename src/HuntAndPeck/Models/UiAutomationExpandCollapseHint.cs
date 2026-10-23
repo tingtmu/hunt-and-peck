@@ -8,24 +8,19 @@ namespace HuntAndPeck.Models
     /// <summary>
     /// Represents a Windows UI Automation based expandcollapse hint
     /// </summary>
-    internal class UiAutomationExpandCollapseHint : Hint
+    internal class UiAutomationExpandCollapseHint : UiAutomationHint
     {
-        private readonly IUIAutomationElement _automationElement;
-
         public UiAutomationExpandCollapseHint(IntPtr owningWindow, IUIAutomationElement automationElement, Rect boundingRectangle)
-            : base(owningWindow, boundingRectangle)
+            : base(owningWindow, automationElement, boundingRectangle)
         {
-            _automationElement = automationElement;
         }
 
         public override bool ClicksOnFailure => true;
 
-        public override Hint CreateClickHint() => new UiAutomationClickHint(OwningWindow, _automationElement, BoundingRectangle);
-
         public override void Invoke()
         {
             var expandCollapsePattern = UiaPatterns.GetCurrent<IUIAutomationExpandCollapsePattern>(
-                _automationElement, UIA_PatternIds.UIA_ExpandCollapsePatternId);
+                AutomationElement, UIA_PatternIds.UIA_ExpandCollapsePatternId);
             switch (expandCollapsePattern.CurrentExpandCollapseState)
             {
                 case ExpandCollapseState.ExpandCollapseState_Collapsed:

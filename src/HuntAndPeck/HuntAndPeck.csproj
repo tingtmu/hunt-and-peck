@@ -109,6 +109,7 @@
     <Compile Include="Models\UiAutomationClickHint.cs" />
     <Compile Include="Models\UiAutomationExpandCollapseHint.cs" />
     <Compile Include="Models\UiAutomationFocusHint.cs" />
+    <Compile Include="Models\UiAutomationHint.cs" />
     <Compile Include="Models\UiAutomationInvokeHint.cs" />
     <Compile Include="Models\UiAutomationLegacyDefaultActionHint.cs" />
     <Compile Include="Models\UiAutomationSelectHint.cs" />
