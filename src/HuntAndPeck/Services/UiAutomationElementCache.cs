@@ -29,6 +29,23 @@ namespace HuntAndPeck.Services
         };
 
         /// <summary>
+        /// The Is*PatternAvailable properties of every pattern a hint can use: an element with none of them gets no
+        /// hint (see <see cref="UiAutomationHintKindSelector"/>), so the find condition leaves it out
+        /// </summary>
+        /// <param name="includeLegacy">Also the LegacyIAccessible pattern (bars mode)</param>
+        public static IEnumerable<int> ActionPatternAvailabilityProperties(bool includeLegacy)
+        {
+            foreach (var flagProperty in s_flagProperties)
+            {
+                yield return flagProperty.Key;
+            }
+            if (includeLegacy)
+            {
+                yield return UIA_PropertyIds.UIA_IsLegacyIAccessiblePatternAvailablePropertyId;
+            }
+        }
+
+        /// <summary>
         /// Creates the cache request. Elements stay in Full mode so hints can make live calls when invoked.
         /// </summary>
         /// <param name="automation">The automation object of the calling (worker) thread</param>

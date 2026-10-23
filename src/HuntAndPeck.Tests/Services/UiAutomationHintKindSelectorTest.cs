@@ -1,4 +1,6 @@
-﻿using HuntAndPeck.Services;
+﻿using System.Linq;
+using HuntAndPeck.Services;
+using UIAutomationClient;
 using Xunit;
 using C = HuntAndPeck.Services.UiAutomationCapabilities;
 using K = HuntAndPeck.Services.UiAutomationHintKind;
@@ -122,6 +124,32 @@ namespace HuntAndPeck.Tests.Services
             if (c.HasFlag(C.ValueAvailable) && !c.HasFlag(C.ValueReadOnly)) return K.Focus;
             if (c.HasFlag(C.RangeValueAvailable) && !c.HasFlag(C.RangeValueReadOnly)) return K.Focus;
             return K.None;
+        }
+
+        /// <summary>
+        /// The scan only finds elements with one of these patterns; a pattern the selector uses but the scan
+        /// leaves out would silently lose its hints
+        /// </summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ScanFindsEveryPatternTheSelectorUses(bool includeLegacy)
+        {
+            var expected = new[]
+            {
+                UIA_PropertyIds.UIA_IsInvokePatternAvailablePropertyId,
+                UIA_PropertyIds.UIA_IsTogglePatternAvailablePropertyId,
+                UIA_PropertyIds.UIA_IsSelectionItemPatternAvailablePropertyId,
+                UIA_PropertyIds.UIA_IsExpandCollapsePatternAvailablePropertyId,
+                UIA_PropertyIds.UIA_IsValuePatternAvailablePropertyId,
+                UIA_PropertyIds.UIA_IsRangeValuePatternAvailablePropertyId,
+            }.ToList();
+            if (includeLegacy)
+            {
+                expected.Add(UIA_PropertyIds.UIA_IsLegacyIAccessiblePatternAvailablePropertyId);
+            }
+
+            Assert.Equal(expected.OrderBy(x => x), UiAutomationElementCache.ActionPatternAvailabilityProperties(includeLegacy).OrderBy(x => x));
         }
     }
 }

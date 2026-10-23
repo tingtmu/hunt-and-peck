@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using HuntAndPeck.Services.Uia;
 using UIAutomationClient;
 
@@ -29,12 +30,13 @@ namespace HuntAndPeck.Services
     {
         /// <param name="hWnd">The window</param>
         /// <param name="includeLegacy">Also cache the LegacyIAccessible properties (bars mode)</param>
+        /// <param name="allElements">Also elements no hint can act on (debug overlay)</param>
         /// <returns>The elements found, else null if the window could not be enumerated</returns>
-        public static ElementScan TryScan(IntPtr hWnd, bool includeLegacy = false)
+        public static ElementScan TryScan(IntPtr hWnd, bool includeLegacy = false, bool allElements = false)
         {
             try
             {
-                return ScanWithFallback(hWnd, includeLegacy);
+                return ScanWithFallback(hWnd, includeLegacy, allElements);
             }
             catch (Exception ex) when (UiaErrors.IsTargetFailure(ex) || ex is ArgumentException)
             {
@@ -50,24 +52,24 @@ namespace HuntAndPeck.Services
         /// reading properties live per element. A timeout is not retried: the target is hung, and a second
         /// attempt would only burn the rest of the enumeration timeout.
         /// </remarks>
-        private static ElementScan ScanWithFallback(IntPtr hWnd, bool includeLegacy)
+        private static ElementScan ScanWithFallback(IntPtr hWnd, bool includeLegacy, bool allElements)
         {
             try
             {
-                return Scan(hWnd, UiaPropertySource.Cached, includeLegacy);
+                return Scan(hWnd, UiaPropertySource.Cached, includeLegacy, allElements);
             }
             catch (Exception ex) when (UiaErrors.IsTargetFailure(ex) && !UiaErrors.IsTimeout(ex))
             {
                 Trace.TraceWarning("Cached UI Automation enumeration failed for window {0}, retrying uncached: {1}", hWnd, UiaErrors.Describe(ex));
             }
-            return Scan(hWnd, UiaPropertySource.Current, includeLegacy);
+            return Scan(hWnd, UiaPropertySource.Current, includeLegacy, allElements);
         }
 
-        private static ElementScan Scan(IntPtr hWnd, UiaPropertySource source, bool includeLegacy)
+        private static ElementScan Scan(IntPtr hWnd, UiaPropertySource source, bool includeLegacy, bool allElements)
         {
             var automation = UiaAutomationFactory.ForCurrentThread();
             var automationElement = automation.ElementFromHandle(hWnd);
-            var condition = CreateCondition(automation);
+            var condition = CreateCondition(automation, includeLegacy, allElements);
 
             // Cached: one bulk call fetches every element with the properties that decide its hint
             var elementArray = source == UiaPropertySource.Cached
@@ -85,14 +87,27 @@ namespace HuntAndPeck.Services
             return new ElementScan(elements, source);
         }
 
-        /// <summary>Enabled, on-screen elements of the control view</summary>
-        private static IUIAutomationCondition CreateCondition(IUIAutomation automation)
+        /// <summary>
+        /// Enabled, on-screen elements of the control view; unless <paramref name="allElements"/>, only those
+        /// supporting a pattern a hint can use, so the target doesn't send elements that would get no hint
+        /// (halves the elements found in typical windows)
+        /// </summary>
+        private static IUIAutomationCondition CreateCondition(IUIAutomation automation, bool includeLegacy, bool allElements)
         {
             var conditionEnabled = automation.CreatePropertyCondition(UIA_PropertyIds.UIA_IsEnabledPropertyId, true);
             var enabledControlCondition = automation.CreateAndCondition(automation.ControlViewCondition, conditionEnabled);
 
             var conditionOnScreen = automation.CreatePropertyCondition(UIA_PropertyIds.UIA_IsOffscreenPropertyId, false);
-            return automation.CreateAndCondition(enabledControlCondition, conditionOnScreen);
+            var visibleCondition = automation.CreateAndCondition(enabledControlCondition, conditionOnScreen);
+            if (allElements)
+            {
+                return visibleCondition;
+            }
+
+            var actionConditions = UiAutomationElementCache.ActionPatternAvailabilityProperties(includeLegacy)
+                .Select(x => automation.CreatePropertyCondition(x, true))
+                .ToArray();
+            return automation.CreateAndCondition(visibleCondition, automation.CreateOrConditionFromArray(actionConditions));
         }
     }
 }

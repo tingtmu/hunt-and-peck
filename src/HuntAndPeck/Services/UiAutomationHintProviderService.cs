@@ -37,22 +37,23 @@ namespace HuntAndPeck.Services
 
         public Task<HintSession> EnumHintsAsync()
         {
-            return EnumForegroundAsync(UiAutomationHintFactory.CreateHint);
+            return EnumForegroundAsync(UiAutomationHintFactory.CreateHint, false);
         }
 
         public Task<HintSession> EnumHintsAsync(IntPtr hWnd)
         {
-            return EnumAsync(hWnd, UiAutomationHintFactory.CreateHint);
+            return EnumAsync(hWnd, UiAutomationHintFactory.CreateHint, false);
         }
 
+        /// <remarks>Shows every element, also those no hint can act on</remarks>
         public Task<HintSession> EnumDebugHintsAsync()
         {
-            return EnumForegroundAsync(UiAutomationHintFactory.CreateDebugHint);
+            return EnumForegroundAsync(UiAutomationHintFactory.CreateDebugHint, true);
         }
 
         public Task<HintSession> EnumDebugHintsAsync(IntPtr hWnd)
         {
-            return EnumAsync(hWnd, UiAutomationHintFactory.CreateDebugHint);
+            return EnumAsync(hWnd, UiAutomationHintFactory.CreateDebugHint, true);
         }
 
         /// <remarks>
@@ -114,13 +115,13 @@ namespace HuntAndPeck.Services
             return true;
         }
 
-        private Task<HintSession> EnumForegroundAsync(HintFactoryMethod hintFactory)
+        private Task<HintSession> EnumForegroundAsync(HintFactoryMethod hintFactory, bool allElements)
         {
             var foregroundWindow = User32.GetForegroundWindow();
-            return EnumAsync(foregroundWindow, hintFactory);
+            return EnumAsync(foregroundWindow, hintFactory, allElements);
         }
 
-        private async Task<HintSession> EnumAsync(IntPtr hWnd, HintFactoryMethod hintFactory)
+        private async Task<HintSession> EnumAsync(IntPtr hWnd, HintFactoryMethod hintFactory, bool allElements)
         {
             if (hWnd == IntPtr.Zero)
             {
@@ -129,7 +130,7 @@ namespace HuntAndPeck.Services
 
             try
             {
-                return await _executor.RunAsync(() => EnumWindowHints(hWnd, hintFactory), EnumerationTimeout).ConfigureAwait(false);
+                return await _executor.RunAsync(() => EnumWindowHints(hWnd, hintFactory, allElements), EnumerationTimeout).ConfigureAwait(false);
             }
             catch (TimeoutException ex)
             {
@@ -195,8 +196,9 @@ namespace HuntAndPeck.Services
         /// </summary>
         /// <param name="hWnd">The window to get hints from</param>
         /// <param name="hintFactory">The factory to use to create each hint in the session</param>
+        /// <param name="allElements">Also scan elements no hint can act on (debug overlay)</param>
         /// <returns>A hint session, else null if the window could not be enumerated</returns>
-        private static HintSession EnumWindowHints(IntPtr hWnd, HintFactoryMethod hintFactory)
+        private static HintSession EnumWindowHints(IntPtr hWnd, HintFactoryMethod hintFactory, bool allElements)
         {
             Rect windowBounds;
             if (!TryGetWindowBounds(hWnd, out windowBounds))
@@ -204,7 +206,7 @@ namespace HuntAndPeck.Services
                 return null;
             }
 
-            var hints = WindowHintScanner.Scan(new WindowScanTarget(hWnd, windowBounds, windowBounds, hintFactory, false));
+            var hints = WindowHintScanner.Scan(new WindowScanTarget(hWnd, windowBounds, windowBounds, hintFactory, false, allElements));
             if (hints == null)
             {
                 return null;
