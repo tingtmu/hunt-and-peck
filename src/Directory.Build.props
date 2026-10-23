@@ -8,7 +8,7 @@
 
   <PropertyGroup>
     <!-- Release version. Keep app.manifest's assemblyIdentity version in step (VersionTest checks it). -->
-    <Version>1.10.0</Version>
+    <Version>1.10.1</Version>
     <Product>HuntAndPeck</Product>
     <Copyright>Copyright Zachary Sims</Copyright>
     <!-- The About box shows the InformationalVersion: no "+<commit sha>" suffix -->

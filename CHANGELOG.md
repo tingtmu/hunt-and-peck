@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.10.1 (2026-10-23)
+
+No changes to the app itself.
 
 ### Development
 - SDK-style project files (still .NET Framework 4.8.1). Building needs the ".NET SDK" component of VS 2022 Build Tools;
