@@ -1,0 +1,86 @@
+﻿name: CI
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~\.nuget\packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('src/**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Build
+        run: msbuild src\HuntAndPeck.sln -restore -p:Configuration=Release
+
+      - name: Test
+        run: |
+          $nugetPackages = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { "$env:USERPROFILE\.nuget\packages" }
+          & "$nugetPackages\xunit.runner.console\2.9.3\tools\net481\xunit.console.exe" `
+              src\HuntAndPeck.Tests\bin\Release\HuntAndPeck.Tests.dll
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Check tag matches SolutionInfo.cs version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          $version = '${{ github.ref_name }}'.Substring(1)
+          $info = Get-Content src\SolutionInfo.cs -Raw
+          if ($info -notmatch 'AssemblyInformationalVersionAttribute\("([^"]+)"\)') {
+            throw 'AssemblyInformationalVersionAttribute not found in src\SolutionInfo.cs'
+          }
+          if ($Matches[1] -ne $version) {
+            throw "Tag version '$version' does not match SolutionInfo.cs version '$($Matches[1])'"
+          }
+
+      - name: Package release
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          $version = '${{ github.ref_name }}'.Substring(1)
+          $zip = "HuntAndPeck-$version.zip"
+          $files = 'hap.exe', 'hap.exe.config', 'HuntAndPeck.NativeMethods.dll',
+                   'Interop.UIAutomationClient.dll', 'Hardcodet.NotifyIcon.Wpf.dll' |
+              ForEach-Object { "src\HuntAndPeck\bin\Release\$_" }
+          Compress-Archive -Path $files -DestinationPath $zip
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          [System.IO.File]::WriteAllText("$PWD\SHA256SUMS.txt", "$hash  $zip`n")
+
+      - name: Upload release files
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: |
+            HuntAndPeck-*.zip
+            SHA256SUMS.txt
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            HuntAndPeck-*.zip
+            SHA256SUMS.txt

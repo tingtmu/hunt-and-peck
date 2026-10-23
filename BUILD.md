@@ -47,6 +47,12 @@ $nugetPackages = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { "$env:U
     src\HuntAndPeck.Tests\bin\Release\HuntAndPeck.Tests.dll
 ```
 
+## CI / Release
+
+GitHub Actions (`.github/workflows/ci.yml`) builds and tests every push and pull request on
+`windows-latest`, using the same commands as above. Pushing a `v*` tag (e.g. `v1.8.2`) additionally
+checks that the tag matches `AssemblyInformationalVersion` in `src\SolutionInfo.cs`, then publishes a
+GitHub Release with `HuntAndPeck-<version>.zip` and `SHA256SUMS.txt`.
 ## Notes
 
 - The projects are classic (non-SDK) csproj files using `PackageReference`. SDK-style projects
