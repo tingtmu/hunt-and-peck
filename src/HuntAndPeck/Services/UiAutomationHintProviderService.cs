@@ -5,6 +5,7 @@ using HuntAndPeck.Services.Uia;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -37,22 +38,23 @@ namespace HuntAndPeck.Services
 
         public Task<HintSession> EnumHintsAsync()
         {
-            return EnumForegroundAsync(UiAutomationHintFactory.CreateHint);
+            return EnumForegroundAsync(UiAutomationHintFactory.CreateHint, false);
         }
 
         public Task<HintSession> EnumHintsAsync(IntPtr hWnd)
         {
-            return EnumAsync(hWnd, UiAutomationHintFactory.CreateHint);
+            return EnumAsync(hWnd, UiAutomationHintFactory.CreateHint, false);
         }
 
+        /// <remarks>Shows every element, also those no hint can act on</remarks>
         public Task<HintSession> EnumDebugHintsAsync()
         {
-            return EnumForegroundAsync(UiAutomationHintFactory.CreateDebugHint);
+            return EnumForegroundAsync(UiAutomationHintFactory.CreateDebugHint, true);
         }
 
         public Task<HintSession> EnumDebugHintsAsync(IntPtr hWnd)
         {
-            return EnumAsync(hWnd, UiAutomationHintFactory.CreateDebugHint);
+            return EnumAsync(hWnd, UiAutomationHintFactory.CreateDebugHint, true);
         }
 
         /// <remarks>
@@ -64,6 +66,24 @@ namespace HuntAndPeck.Services
         {
             return _barEnumerator.EnumAsync(GetWindowBounds(windows), monitor);
         }
+        public async Task<HintSession> EnumPopupHintsAsync(IReadOnlyList<IntPtr> windows)
+        {
+            try
+            {
+                return await _executor.RunAsync(() => EnumPopupWindowHints(windows), EnumerationTimeout).ConfigureAwait(false);
+            }
+            catch (TimeoutException ex)
+            {
+                Trace.TraceWarning("Popup hint enumeration abandoned: {0}", ex.Message);
+                return null;
+            }
+            catch (Exception ex) when (IsShutdown(ex))
+            {
+                Trace.TraceInformation("Popup hint enumeration cancelled, UI Automation is shutting down: {0}", ex.Message);
+                return null;
+            }
+        }
+
         /// <remarks>
         /// Target failures (element gone, app hung/closed) and timeouts are logged and do not fault the task
         /// </remarks>
@@ -114,13 +134,13 @@ namespace HuntAndPeck.Services
             return true;
         }
 
-        private Task<HintSession> EnumForegroundAsync(HintFactoryMethod hintFactory)
+        private Task<HintSession> EnumForegroundAsync(HintFactoryMethod hintFactory, bool allElements)
         {
             var foregroundWindow = User32.GetForegroundWindow();
-            return EnumAsync(foregroundWindow, hintFactory);
+            return EnumAsync(foregroundWindow, hintFactory, allElements);
         }
 
-        private async Task<HintSession> EnumAsync(IntPtr hWnd, HintFactoryMethod hintFactory)
+        private async Task<HintSession> EnumAsync(IntPtr hWnd, HintFactoryMethod hintFactory, bool allElements)
         {
             if (hWnd == IntPtr.Zero)
             {
@@ -129,7 +149,7 @@ namespace HuntAndPeck.Services
 
             try
             {
-                return await _executor.RunAsync(() => EnumWindowHints(hWnd, hintFactory), EnumerationTimeout).ConfigureAwait(false);
+                return await _executor.RunAsync(() => EnumWindowHints(hWnd, hintFactory, allElements), EnumerationTimeout).ConfigureAwait(false);
             }
             catch (TimeoutException ex)
             {
@@ -191,12 +211,43 @@ namespace HuntAndPeck.Services
         }
 
         /// <summary>
+        /// Enumerates the hints of popup windows for one overlay over all of them. Runs on the UIA worker thread.
+        /// </summary>
+        /// <returns>A hint session, else null if none of the windows has bounds any more</returns>
+        private static HintSession EnumPopupWindowHints(IReadOnlyList<IntPtr> windows)
+        {
+            var targets = GetWindowBounds(windows);
+            if (targets.Count == 0)
+            {
+                return null;
+            }
+
+            var overlayBounds = HintBounds.UnionOf(targets.Select(x => x.Value));
+            var hints = new List<Hint>();
+            foreach (var target in targets)
+            {
+                var windowHints = WindowHintScanner.Scan(new WindowScanTarget(target.Key, target.Value, overlayBounds, UiAutomationHintFactory.CreateHint, false));
+                if (windowHints != null)
+                {
+                    hints.AddRange(windowHints);
+                }
+            }
+            return new HintSession
+            {
+                Hints = hints,
+                OwningWindow = targets[0].Key,
+                OwningWindowBounds = overlayBounds,
+            };
+        }
+
+        /// <summary>
         /// Enumerates all the hints from the given window. Runs on the UIA worker thread.
         /// </summary>
         /// <param name="hWnd">The window to get hints from</param>
         /// <param name="hintFactory">The factory to use to create each hint in the session</param>
+        /// <param name="allElements">Also scan elements no hint can act on (debug overlay)</param>
         /// <returns>A hint session, else null if the window could not be enumerated</returns>
-        private static HintSession EnumWindowHints(IntPtr hWnd, HintFactoryMethod hintFactory)
+        private static HintSession EnumWindowHints(IntPtr hWnd, HintFactoryMethod hintFactory, bool allElements)
         {
             Rect windowBounds;
             if (!TryGetWindowBounds(hWnd, out windowBounds))
@@ -204,7 +255,7 @@ namespace HuntAndPeck.Services
                 return null;
             }
 
-            var hints = WindowHintScanner.Scan(new WindowScanTarget(hWnd, windowBounds, windowBounds, hintFactory, false));
+            var hints = WindowHintScanner.Scan(new WindowScanTarget(hWnd, windowBounds, windowBounds, hintFactory, false, allElements));
             if (hints == null)
             {
                 return null;

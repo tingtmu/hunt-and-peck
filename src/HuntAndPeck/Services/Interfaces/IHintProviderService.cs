@@ -43,6 +43,16 @@ namespace HuntAndPeck.Services.Interfaces
         Task<HintSession> EnumBarHintsAsync(IReadOnlyList<IntPtr> windows, Rect monitor);
 
         /// <summary>
+        /// Enumerate the hints of popup windows (a menu and its submenus, a dropdown list) for one overlay covering
+        /// them all
+        /// </summary>
+        /// <returns>
+        /// The session; its bounds are the union of the windows' bounds. Null if enumeration failed or timed out
+        /// (logged); windows that fail are left out.
+        /// </returns>
+        Task<HintSession> EnumPopupHintsAsync(IReadOnlyList<IntPtr> windows);
+
+        /// <summary>
         /// Invokes a hint from a session created by this service. Safe to fire and forget.
         /// </summary>
         /// <returns>

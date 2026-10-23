@@ -76,11 +76,18 @@
     <Compile Include="Diagnostics\NotificationThrottleTest.cs" />
     <Compile Include="Diagnostics\RollingFileTraceListenerTest.cs" />
     <Compile Include="Extensions\DpiHelperTest.cs" />
+    <Compile Include="Integration\FixtureInvokeTest.cs" />
+    <Compile Include="Integration\FixtureScanTest.cs" />
+    <Compile Include="Integration\FixtureUia.cs" />
+    <Compile Include="Integration\UiaFixtureApp.cs" />
     <Compile Include="Extensions\RectExtensionsTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\HintBoundsTest.cs" />
     <Compile Include="Services\HintDedupTest.cs" />
     <Compile Include="Services\HintLabelServiceTest.cs" />
+    <Compile Include="Services\HintOrderingTest.cs" />
+    <Compile Include="Services\MenuPopupWatcherTest.cs" />
+    <Compile Include="ViewModels\MenuHintFollowerTest.cs" />
     <Compile Include="Services\UiAutomationHintKindSelectorTest.cs" />
     <Compile Include="Services\HotKeyTest.cs" />
     <Compile Include="Services\FakeRegistryRunKey.cs" />
@@ -98,11 +105,13 @@
     <Compile Include="Services\Uia\UiaExecutorTest.cs" />
     <Compile Include="Services\Uia\UiaWorkerTest.cs" />
     <Compile Include="SingleLaunchMutexTest.cs" />
+    <Compile Include="VersionTest.cs" />
     <Compile Include="ViewModels\FakeUserSettings.cs" />
     <Compile Include="ViewModels\OptionsViewModelTest.cs" />
     <Compile Include="ViewModels\OverlayViewModelTest.cs" />
     <Compile Include="ViewModels\ShellViewModelTest.cs" />
     <Compile Include="Views\OverlayPlacementTest.cs" />
+    <Compile Include="Views\HintColorsTest.cs" />
     <Compile Include="Views\OverlayThemeTest.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -116,7 +125,26 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\HuntAndPeck\app.manifest">
+      <Link>app.manifest</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Built before the tests, but only run, not referenced; copied next to the test dll below -->
+    <ProjectReference Include="..\HuntAndPeck.UiaFixture\HuntAndPeck.UiaFixture.csproj">
+      <Project>{7b1c5e2a-3d4f-4a86-9c21-5e0f8a6d1b47}</Project>
+      <Name>HuntAndPeck.UiaFixture</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- The tests use UIA types too; generates this project's own copy of the interop assembly -->
+  <Import Project="..\HuntAndPeck\UIAutomationInterop.targets" />
+  <Target Name="CopyUiaFixture" AfterTargets="Build">
+    <Copy SourceFiles="..\HuntAndPeck.UiaFixture\bin\$(Configuration)\HuntAndPeck.UiaFixture.exe" DestinationFolder="$(OutDir)" />
+  </Target>
 </Project>

@@ -101,6 +101,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <Label Grid.Row="0" Grid.Column="0" Content="_Letters:" Target="{Binding ElementName=AlphabetBox}" />
@@ -112,12 +113,20 @@
                 </StackPanel>
 
                 <Label Grid.Row="1" Grid.Column="0" Content="_Font size:" Target="{Binding ElementName=FontSizeBox}" />
-                <StackPanel Grid.Row="1" Grid.Column="1">
+                <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,8">
                     <ComboBox x:Name="FontSizeBox" IsEditable="True" Width="80" HorizontalAlignment="Left"
                               ItemsSource="{Binding FontSizeChoices}"
                               Text="{Binding FontSizeText, UpdateSourceTrigger=PropertyChanged}" />
                     <TextBlock Style="{StaticResource HelpText}" Text="{Binding FontSizeHelp}" />
                     <TextBlock Style="{StaticResource ErrorText}" Text="{Binding FontSizeError}" />
+                </StackPanel>
+
+                <Label Grid.Row="2" Grid.Column="0" Content="Hint st_yle:" Target="{Binding ElementName=HintStyleBox}" />
+                <StackPanel Grid.Row="2" Grid.Column="1">
+                    <ComboBox x:Name="HintStyleBox" Width="160" HorizontalAlignment="Left"
+                              ItemsSource="{Binding HintStyleChoices}"
+                              DisplayMemberPath="Value" SelectedValuePath="Key"
+                              SelectedValue="{Binding HintStyle}" />
                 </StackPanel>
             </Grid>
         </GroupBox>

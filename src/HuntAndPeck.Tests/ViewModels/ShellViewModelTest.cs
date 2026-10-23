@@ -137,6 +137,47 @@ namespace HuntAndPeck.Tests.ViewModels
             }
         }
 
+        [Fact]
+        public void SessionWithoutHints_ShowsNothingToClickNotice_OverTheWindow()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var provider = new FakeHintProvider();
+                var keys = new FakeKeyListener();
+                var notices = new List<NoticeViewModel>();
+                CreateShell(provider, keys, vm => { }, (context, ex) => { }, notices.Add);
+                var bounds = new System.Windows.Rect(10, 20, 300, 200);
+
+                keys.Press();
+                provider.Pending[0].SetResult(new HintSession { Hints = new List<Hint>(), OwningWindowBounds = bounds });
+
+                var notice = Assert.Single(notices);
+                Assert.Equal(ShellViewModel.NothingToClickNotice, notice.Message);
+                Assert.Equal(bounds, notice.Bounds);
+            }
+        }
+
+        [Fact]
+        public void FailedEnumeration_ShowsNoResponseNotice_AndHotKeyWorksAgain()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var provider = new FakeHintProvider();
+                var keys = new FakeKeyListener();
+                var notices = new List<NoticeViewModel>();
+                CreateShell(provider, keys, vm => { }, (context, ex) => { }, notices.Add);
+
+                keys.Press();
+                provider.Pending[0].SetResult(null);
+
+                var notice = Assert.Single(notices);
+                Assert.Equal(ShellViewModel.NoResponseNotice, notice.Message);
+                Assert.True(notice.Bounds.IsEmpty);
+                keys.Press();
+                Assert.Equal(2, provider.Pending.Count);
+            }
+        }
+
         private sealed class FakeHint : Hint
         {
             public FakeHint()
@@ -168,13 +209,14 @@ namespace HuntAndPeck.Tests.ViewModels
         }
 
         private static ShellViewModel CreateShell(
-            FakeHintProvider provider, FakeKeyListener keys, Action<OverlayViewModel> showOverlay, Action<string, Exception> reportError)
+            FakeHintProvider provider, FakeKeyListener keys, Action<OverlayViewModel> showOverlay, Action<string, Exception> reportError,
+            Action<NoticeViewModel> showNotice = null)
         {
             return new ShellViewModel(
                 showOverlay, vm => { }, vm => { }, text => { }, reportError,
                 new HintLabelService(), provider, null, keys,
                 new StartupRegistrationService(new FakeRegistryRunKey(), ExePath, path => true),
-                new FakeUserSettings(), message => { });
+                new FakeUserSettings(), message => { }, showNotice);
         }
 
         private static ShellViewModel CreateShell(FakeRegistryRunKey registry, List<string> warnings)
@@ -320,6 +362,16 @@ namespace HuntAndPeck.Tests.ViewModels
             public Task<HintSession> EnumHintsAsync(IntPtr handle) => EnumHintsAsync();
 
             public Task<HintSession> EnumBarHintsAsync(IReadOnlyList<IntPtr> windows, System.Windows.Rect monitor) => EnumHintsAsync();
+
+            public List<IReadOnlyList<IntPtr>> PopupEnumerations { get; } = new List<IReadOnlyList<IntPtr>>();
+
+            public HintSession PopupSession { get; set; }
+
+            public Task<HintSession> EnumPopupHintsAsync(IReadOnlyList<IntPtr> windows)
+            {
+                PopupEnumerations.Add(windows);
+                return Task.FromResult(PopupSession);
+            }
 
             public Task<bool> InvokeHintAsync(Hint hint) => Task.FromResult(true);
         }

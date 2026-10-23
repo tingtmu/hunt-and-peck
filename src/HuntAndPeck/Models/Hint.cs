@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows;
+using HuntAndPeck.NativeMethods;
 
 namespace HuntAndPeck.Models
 {
@@ -36,11 +37,11 @@ namespace HuntAndPeck.Models
         public virtual bool InvokeAfterOverlayCloses => false;
 
         /// <summary>
-        /// A hint that clicks the same element with the mouse, for a forced click (Shift) and, if
-        /// <see cref="ClicksOnFailure"/>, when this hint's action fails; null if there is none (e.g. this hint
-        /// already clicks)
+        /// A hint that clicks the same element with the mouse, for a forced click (Shift, Ctrl or Ctrl+Shift with the
+        /// last letter) and, if <see cref="ClicksOnFailure"/>, a left click when this hint's action fails; null if
+        /// there is none (e.g. this hint already clicks that way)
         /// </summary>
-        public virtual Hint CreateClickHint() => null;
+        public virtual Hint CreateClickHint(MouseAction action) => null;
 
         /// <summary>
         /// True if a failed action may be retried as a click (<see cref="CreateClickHint"/>). False where a

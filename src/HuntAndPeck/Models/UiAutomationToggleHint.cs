@@ -8,21 +8,16 @@ namespace HuntAndPeck.Models
     /// <summary>
     /// Represents a Windows UI Automation based toggle hint
     /// </summary>
-    internal class UiAutomationToggleHint : Hint
+    internal class UiAutomationToggleHint : UiAutomationHint
     {
-        private readonly IUIAutomationElement _automationElement;
-
         public UiAutomationToggleHint(IntPtr owningWindow, IUIAutomationElement automationElement, Rect boundingRectangle)
-            : base(owningWindow, boundingRectangle)
+            : base(owningWindow, automationElement, boundingRectangle)
         {
-            _automationElement = automationElement;
         }
-
-        public override Hint CreateClickHint() => new UiAutomationClickHint(OwningWindow, _automationElement, BoundingRectangle);
 
         public override void Invoke()
         {
-            UiaPatterns.GetCurrent<IUIAutomationTogglePattern>(_automationElement, UIA_PatternIds.UIA_TogglePatternId).Toggle();
+            UiaPatterns.GetCurrent<IUIAutomationTogglePattern>(AutomationElement, UIA_PatternIds.UIA_TogglePatternId).Toggle();
         }
     }
 }

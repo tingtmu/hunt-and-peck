@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -6,9 +7,11 @@ using System.Security;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using HuntAndPeck.Configuration;
 using HuntAndPeck.Diagnostics;
 using HuntAndPeck.Models;
+using HuntAndPeck.NativeMethods;
 using HuntAndPeck.Services;
 using HuntAndPeck.ViewModels;
 using HuntAndPeck.Views;
@@ -34,6 +37,8 @@ namespace HuntAndPeck
         private KeyListenerService _keyListenerService;
         private TrayNotifier _trayNotifier;
         private GlobalExceptionHandlers _exceptionHandlers;
+        private readonly MenuPopupWatcher _menuPopups = new MenuPopupWatcher(new TopLevelWindowSource(), Task.Delay, () => MenuClock.Elapsed);
+        private static readonly Stopwatch MenuClock = Stopwatch.StartNew();
 
         /// <summary>
         /// Creates the overlay window; the view model may close it at any time, also after it already closed
@@ -67,6 +72,60 @@ namespace HuntAndPeck
             CreateOverlayView(vm).ShowDialog();
         }
 
+        /// <summary>How often the menu overlay checks that its menu is still open</summary>
+        private static readonly TimeSpan MenuCheckInterval = TimeSpan.FromMilliseconds(150);
+
+        /// <summary>
+        /// Shows hints over an open menu until one is chosen, Esc or another key is pressed, or the menu closes.
+        /// Blocks like <see cref="ShowOverlay"/>. The overlay never takes the foreground (the menu would close), so
+        /// its keys come from a keyboard hook installed only while it is shown.
+        /// </summary>
+        private void ShowMenuOverlay(OverlayViewModel vm, IReadOnlyList<IntPtr> menus)
+        {
+            var view = CreateOverlayView(vm);
+            view.Passive = true;
+            view.ShowActivated = false;
+            // Created hidden first, so it is non-activating (OverlayView.OnSourceInitialized) before Show: a window
+            // created by Show was activated, taking the foreground and so closing the menu
+            new WindowInteropHelper(view).EnsureHandle();
+
+            KeyboardHook hook;
+            try
+            {
+                hook = new KeyboardHook(view.HandleHookKey);
+            }
+            catch (InvalidOperationException ex)
+            {
+                Trace.TraceWarning("Menu: no hints, the keyboard hook could not be installed: {0}", ex.Message);
+                // Its handle already exists (EnsureHandle)
+                view.Close();
+                return;
+            }
+
+            var shown = Stopwatch.StartNew();
+            var menuCheck = new DispatcherTimer { Interval = MenuCheckInterval };
+            menuCheck.Tick += (sender, e) =>
+            {
+                if (!_menuPopups.AnyVisible(menus))
+                {
+                    Trace.TraceInformation("Menu: the menu closed after {0} ms, hiding its hints", shown.ElapsedMilliseconds);
+                    view.Close();
+                }
+            };
+            var frame = new DispatcherFrame();
+            view.Closed += (sender, e) =>
+            {
+                menuCheck.Stop();
+                // Not inside the hook's own callback, which may be what closed the view
+                Dispatcher.BeginInvoke(new Action(hook.Dispose));
+                frame.Continue = false;
+            };
+
+            view.Show();
+            menuCheck.Start();
+            Dispatcher.PushFrame(frame);
+        }
+
         private void ShowDebugOverlay(DebugOverlayViewModel vm)
         {
             var view = new DebugOverlayView
@@ -85,6 +144,23 @@ namespace HuntAndPeck
             // Shown modally, so setting DialogResult closes it
             vm.Close = () => view.DialogResult = true;
             view.ShowDialog();
+        }
+
+        /// <summary>Shows the notice over its window, else over the foreground window; not modal</summary>
+        private static void ShowNotice(NoticeViewModel vm)
+        {
+            if (vm.Bounds.IsEmpty)
+            {
+                // Physical pixels: the process is per-monitor DPI aware
+                var raw = new RECT();
+                if (!User32.GetWindowRect(User32.GetForegroundWindow(), ref raw))
+                {
+                    Trace.TraceInformation("No window to show the notice \"{0}\" over", vm.Message);
+                    return;
+                }
+                vm = new NoticeViewModel(vm.Message, raw);
+            }
+            new NoticeView { DataContext = vm }.Show();
         }
 
         private static void ShowAbout(string text)
@@ -110,7 +186,8 @@ namespace HuntAndPeck
                     return;
                 }
 
-                var vm = new OverlayViewModel(session, _hintLabelService, _hintProviderService.InvokeHintAsync, _settings.Load().FontSize);
+                var settings = _settings.Load();
+                var vm = new OverlayViewModel(session, _hintLabelService, _hintProviderService.InvokeHintAsync, settings.FontSize, settings.HintStyle);
                 var view = CreateOverlayView(vm);
                 view.Closed += async (sender, args) =>
                 {
@@ -176,7 +253,10 @@ namespace HuntAndPeck
                 _keyListenerService,
                 startupRegistration,
                 _settings,
-                _trayNotifier.ShowWarning);
+                _trayNotifier.ShowWarning,
+                ShowNotice,
+                _menuPopups,
+                ShowMenuOverlay);
 
             var shellView = new ShellView
             {

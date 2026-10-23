@@ -17,20 +17,21 @@ namespace HuntAndPeck.Configuration
         public UserSettingsSnapshot Load()
         {
             var settings = Settings.Default;
-            return Parse(settings.FontSize, settings.HintAlphabet, settings.MainHotKey, settings.TaskbarHotKey, ReportInvalid);
+            return Parse(settings.FontSize, settings.HintAlphabet, settings.MainHotKey, settings.TaskbarHotKey, settings.HintStyle, ReportInvalid);
         }
 
         public void Save(UserSettingsSnapshot values)
         {
             var settings = Settings.Default;
             settings.FontSize = FontSizeSetting.Format(values.FontSize);
+            settings.HintStyle = HintStyleSetting.Format(values.HintStyle);
             settings.HintAlphabet = values.HintAlphabet;
             settings.MainHotKey = values.MainHotKey.ToStorageString();
             settings.TaskbarHotKey = values.TaskbarHotKey.ToStorageString();
             settings.Save();
             Trace.TraceInformation(
-                "Settings: saved font size {0}, alphabet {1}, hotkeys {2} / {3}",
-                settings.FontSize, settings.HintAlphabet, settings.MainHotKey, settings.TaskbarHotKey);
+                "Settings: saved font size {0}, hint style {1}, alphabet {2}, hotkeys {3} / {4}",
+                settings.FontSize, settings.HintStyle, settings.HintAlphabet, settings.MainHotKey, settings.TaskbarHotKey);
         }
 
         /// <summary>
@@ -38,7 +39,7 @@ namespace HuntAndPeck.Configuration
         /// </summary>
         /// <param name="reportInvalid">Called with the setting name, stored value and error of each invalid value</param>
         public static UserSettingsSnapshot Parse(
-            string fontSize, string hintAlphabet, string mainHotKey, string taskbarHotKey,
+            string fontSize, string hintAlphabet, string mainHotKey, string taskbarHotKey, string hintStyle,
             Action<string, string, string> reportInvalid)
         {
             var defaults = UserSettingsSnapshot.Defaults;
@@ -48,6 +49,12 @@ namespace HuntAndPeck.Configuration
             if (!FontSizeSetting.TryParse(fontSize, out size, out error))
             {
                 reportInvalid(nameof(Settings.FontSize), fontSize, error);
+            }
+
+            HintStyle style;
+            if (!HintStyleSetting.TryParse(hintStyle, out style, out error))
+            {
+                reportInvalid(nameof(Settings.HintStyle), hintStyle, error);
             }
 
             string alphabet;
@@ -66,7 +73,7 @@ namespace HuntAndPeck.Configuration
                 taskbar = defaults.TaskbarHotKey;
             }
 
-            return new UserSettingsSnapshot(size, alphabet, main, taskbar);
+            return new UserSettingsSnapshot(size, alphabet, main, taskbar, style);
         }
 
         private static HotKeyCombination ParseHotKey(

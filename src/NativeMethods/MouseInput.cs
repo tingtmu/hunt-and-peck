@@ -1,17 +1,29 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace HuntAndPeck.NativeMethods
 {
+    /// <summary>How <see cref="MouseInput.Click"/> clicks</summary>
+    public enum MouseAction
+    {
+        LeftClick,
+        RightClick,
+        DoubleClick,
+    }
+
     /// <summary>
-    /// Synthesized mouse clicks, for elements whose UI Automation actions do nothing (Windows 11 taskbar app buttons)
+    /// Synthesized mouse clicks, for elements whose UI Automation actions do nothing (Windows 11 taskbar app buttons),
+    /// and for clicks UI Automation has no action for (right-click, double-click)
     /// </summary>
     public static class MouseInput
     {
         private const uint INPUT_MOUSE = 0;
         private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
         private const uint MOUSEEVENTF_LEFTUP = 0x0004;
+        private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
+        private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
 
         /// <summary>Time the target gets to read the pressed/released input before the cursor moves back</summary>
         private static readonly TimeSpan SettleDelay = TimeSpan.FromMilliseconds(30);
@@ -27,18 +39,49 @@ namespace HuntAndPeck.NativeMethods
             public IntPtr dwExtraInfo;
         }
 
-        /// <remarks>MOUSEINPUT is the largest member of the native INPUT union, so it alone gives the right size</remarks>
+        [StructLayout(LayoutKind.Sequential)]
+        private struct KEYBDINPUT
+        {
+            public ushort wVk;
+            public ushort wScan;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        /// <remarks>MOUSEINPUT is the largest member of the native INPUT union, so it gives the union's size</remarks>
+        [StructLayout(LayoutKind.Explicit)]
+        private struct InputUnion
+        {
+            [FieldOffset(0)] public MOUSEINPUT mi;
+            [FieldOffset(0)] public KEYBDINPUT ki;
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         private struct INPUT
         {
             public uint type;
-            public MOUSEINPUT mi;
+            public InputUnion u;
         }
+
+        private const uint INPUT_KEYBOARD = 1;
+        private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
+        private const uint KEYEVENTF_KEYUP = 0x0002;
+        private const ushort VK_RCONTROL = 0xA3;
+
+        /// <summary>
+        /// Left/right Shift and Ctrl: still held from typing the last letter (they chose the click), so they are
+        /// released for the click rather than waited for
+        /// </summary>
+        private static readonly ushort[] ReleasedModifierKeys = { 0xA0, 0xA1, 0xA2, VK_RCONTROL };
 
         /// <summary>Shift, Ctrl, Alt, left Win, right Win: held, they would turn the click into e.g. Shift+click</summary>
         private static readonly int[] ModifierKeys = { 0x10, 0x11, 0x12, 0x5B, 0x5C };
 
-        /// <summary>Longest wait for held modifier keys (e.g. from the hotkey) to be released</summary>
+        /// <summary>
+        /// Longest wait for held modifier keys (e.g. Alt from the hotkey) to be released. Alt and Win are not
+        /// released by a synthesized key-up: that would open the menu bar or the Start menu.
+        /// </summary>
         private static readonly TimeSpan ModifierReleaseTimeout = TimeSpan.FromSeconds(1);
 
         private static readonly TimeSpan ModifierPollInterval = TimeSpan.FromMilliseconds(20);
@@ -59,14 +102,19 @@ namespace HuntAndPeck.NativeMethods
         private static extern bool SetCursorPos(int x, int y);
 
         /// <summary>
-        /// Left-clicks at the screen point (physical pixels), then moves the cursor back where it was
+        /// Clicks at the screen point (physical pixels), then moves the cursor back where it was
         /// </summary>
-        /// <remarks>Waits for held modifier keys to be released first, so they don't change what the click does</remarks>
+        /// <remarks>
+        /// Held modifier keys must not change what the click does: a held Shift or Ctrl (e.g. the Ctrl that chose a
+        /// right-click) is released with a synthesized key-up, other modifiers are waited for. A double-click is sent
+        /// as one input batch, well within the double-click time.
+        /// </remarks>
         /// <exception cref="InvalidOperationException">
         /// A modifier key stayed held, the cursor could not be moved, or the input was blocked (e.g. by UIPI)
         /// </exception>
-        public static void LeftClick(int x, int y)
+        public static void Click(int x, int y, MouseAction action)
         {
+            ReleaseShiftAndCtrl();
             if (!WaitForModifiersReleased())
             {
                 throw new InvalidOperationException(string.Format("a modifier key was still held after {0} ms; not clicking", ModifierReleaseTimeout.TotalMilliseconds));
@@ -81,7 +129,7 @@ namespace HuntAndPeck.NativeMethods
 
             try
             {
-                var inputs = new[] { Button(MOUSEEVENTF_LEFTDOWN), Button(MOUSEEVENTF_LEFTUP) };
+                var inputs = Inputs(action);
                 var sent = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
                 if (sent != inputs.Length)
                 {
@@ -95,6 +143,27 @@ namespace HuntAndPeck.NativeMethods
                 {
                     SetCursorPos(previous.X, previous.Y);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Sends a key-up for each held Shift and Ctrl key. Its later physical release is a harmless second key-up.
+        /// If the input is blocked (UIPI), the keys stay held and <see cref="WaitForModifiersReleased"/> times out.
+        /// </summary>
+        private static void ReleaseShiftAndCtrl()
+        {
+            var inputs = new List<INPUT>();
+            foreach (var key in ReleasedModifierKeys)
+            {
+                if ((GetAsyncKeyState(key) & 0x8000) != 0)
+                {
+                    var flags = KEYEVENTF_KEYUP | (key == VK_RCONTROL ? KEYEVENTF_EXTENDEDKEY : 0);
+                    inputs.Add(new INPUT { type = INPUT_KEYBOARD, u = new InputUnion { ki = new KEYBDINPUT { wVk = key, dwFlags = flags } } });
+                }
+            }
+            if (inputs.Count > 0)
+            {
+                SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf(typeof(INPUT)));
             }
         }
 
@@ -125,9 +194,22 @@ namespace HuntAndPeck.NativeMethods
             return false;
         }
 
+        private static INPUT[] Inputs(MouseAction action)
+        {
+            switch (action)
+            {
+                case MouseAction.RightClick:
+                    return new[] { Button(MOUSEEVENTF_RIGHTDOWN), Button(MOUSEEVENTF_RIGHTUP) };
+                case MouseAction.DoubleClick:
+                    return new[] { Button(MOUSEEVENTF_LEFTDOWN), Button(MOUSEEVENTF_LEFTUP), Button(MOUSEEVENTF_LEFTDOWN), Button(MOUSEEVENTF_LEFTUP) };
+                default:
+                    return new[] { Button(MOUSEEVENTF_LEFTDOWN), Button(MOUSEEVENTF_LEFTUP) };
+            }
+        }
+
         private static INPUT Button(uint flags)
         {
-            return new INPUT { type = INPUT_MOUSE, mi = new MOUSEINPUT { dwFlags = flags } };
+            return new INPUT { type = INPUT_MOUSE, u = new InputUnion { mi = new MOUSEINPUT { dwFlags = flags } } };
         }
     }
 }

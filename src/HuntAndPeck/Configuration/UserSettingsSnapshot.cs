@@ -11,9 +11,12 @@
             HotKeyParser.ParseOrDefault(HotKeyParser.DefaultMainHotKey, HotKeyParser.DefaultMainHotKey, out _),
             HotKeyParser.ParseOrDefault(HotKeyParser.DefaultTaskbarHotKey, HotKeyParser.DefaultTaskbarHotKey, out _));
 
-        public UserSettingsSnapshot(double fontSize, string hintAlphabet, HotKeyCombination mainHotKey, HotKeyCombination taskbarHotKey)
+        public UserSettingsSnapshot(
+            double fontSize, string hintAlphabet, HotKeyCombination mainHotKey, HotKeyCombination taskbarHotKey,
+            HintStyle hintStyle = HintStyleSetting.Default)
         {
             FontSize = fontSize;
+            HintStyle = hintStyle;
             HintAlphabet = hintAlphabet;
             MainHotKey = mainHotKey;
             TaskbarHotKey = taskbarHotKey;
@@ -21,6 +24,9 @@
 
         /// <summary>Hint label font size</summary>
         public double FontSize { get; }
+
+        /// <summary>Hint label colours</summary>
+        public HintStyle HintStyle { get; }
 
         /// <summary>Hint label letters, upper case</summary>
         public string HintAlphabet { get; }

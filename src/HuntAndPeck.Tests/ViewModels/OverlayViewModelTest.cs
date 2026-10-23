@@ -1,9 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using HuntAndPeck.Models;
+using HuntAndPeck.NativeMethods;
 using HuntAndPeck.Services;
 using HuntAndPeck.ViewModels;
 using Xunit;
@@ -162,7 +164,7 @@ namespace HuntAndPeck.Tests.ViewModels
             var original = new FallbackFakeHint("original", new ClickFakeHint());
             var recorder = new EventRecorder();
             var vm = CreateViewModel(original, recorder, hint => Task.FromResult(true));
-            vm.ForceClick = true;
+            vm.ForcedAction = MouseAction.LeftClick;
 
             vm.MatchString = vm.Hints[0].Label;
 
@@ -176,7 +178,7 @@ namespace HuntAndPeck.Tests.ViewModels
             var original = new FallbackFakeHint("original", null);
             var recorder = new EventRecorder();
             var vm = CreateViewModel(original, recorder, hint => Task.FromResult(true));
-            vm.ForceClick = true;
+            vm.ForcedAction = MouseAction.LeftClick;
 
             vm.MatchString = vm.Hints[0].Label;
 
@@ -204,7 +206,7 @@ namespace HuntAndPeck.Tests.ViewModels
             var original = new FallbackFakeHint("original", new ClickFakeHint(), clicksOnFailure: false);
             var recorder = new EventRecorder();
             var vm = CreateViewModel(original, recorder, hint => Task.FromResult(true));
-            vm.ForceClick = true;
+            vm.ForcedAction = MouseAction.LeftClick;
 
             vm.MatchString = vm.Hints[0].Label;
 
@@ -224,6 +226,92 @@ namespace HuntAndPeck.Tests.ViewModels
 
             Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
             Assert.Equal(new List<string> { "invoke:original", "close" }, recorder.Snapshot());
+        }
+
+        [Theory]
+        [InlineData(MouseAction.RightClick)]
+        [InlineData(MouseAction.DoubleClick)]
+        public void Match_ForcedAction_ClicksThatWay(MouseAction action)
+        {
+            var original = new FallbackFakeHint("original", new ClickFakeHint());
+            var recorder = new EventRecorder();
+            var vm = CreateViewModel(original, recorder, hint => Task.FromResult(true));
+            vm.ForcedAction = action;
+
+            vm.MatchString = vm.Hints[0].Label;
+
+            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            Assert.Equal(new[] { action }, original.RequestedActions);
+            Assert.Equal(new List<string> { "close", "invoke:click" }, recorder.Snapshot());
+        }
+
+        [Fact]
+        public void FailedInvocation_FallsBackToALeftClick()
+        {
+            var original = new FallbackFakeHint("original", new ClickFakeHint());
+            var vm = CreateViewModel(original, new EventRecorder(), hint => Task.FromResult(false));
+
+            vm.MatchString = vm.Hints[0].Label;
+
+            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            Assert.Equal(new[] { MouseAction.LeftClick }, original.RequestedActions);
+        }
+
+        [Theory]
+        [InlineData(false, false, null)]
+        [InlineData(true, false, MouseAction.LeftClick)]
+        [InlineData(false, true, MouseAction.RightClick)]
+        [InlineData(true, true, MouseAction.DoubleClick)]
+        public void ForcedActionFor_Modifiers(bool shift, bool ctrl, MouseAction? expected)
+        {
+            Assert.Equal(expected, OverlayViewModel.ForcedActionFor(shift, ctrl));
+        }
+
+        [Fact]
+        public void AllHintsShownAtFirst_ThenOnlyThoseMatchingTheTypedLetters()
+        {
+            var vm = CreateViewModelWithHints(40);
+            Assert.All(vm.Hints, x => Assert.True(x.Active));
+
+            var prefix = vm.Hints[0].Label.Substring(0, 1);
+            vm.MatchString = prefix;
+
+            Assert.All(vm.Hints, x => Assert.Equal(x.Label.StartsWith(prefix, StringComparison.OrdinalIgnoreCase), x.Active));
+            Assert.Contains(vm.Hints, x => !x.Active);
+
+            vm.MatchString = "";
+            Assert.All(vm.Hints, x => Assert.True(x.Active));
+        }
+
+        [Fact]
+        public void HasMatch_IsFalseForLettersNoLabelStartsWith()
+        {
+            var vm = CreateViewModelWithHints(3);
+
+            Assert.True(vm.HasMatch(""));
+            Assert.True(vm.HasMatch(vm.Hints[0].Label.ToLowerInvariant()));
+            Assert.False(vm.HasMatch(vm.Hints[0].Label + "Z"));
+            Assert.False(vm.HasMatch("1"));
+        }
+
+        [Fact]
+        public void Labels_FollowReadingOrder()
+        {
+            var right = new PlacedFakeHint(100, 0);
+            var left = new PlacedFakeHint(0, 0);
+            var below = new PlacedFakeHint(0, 100);
+            var labels = new HintLabelService().GetHintStrings(3);
+
+            var vm = new OverlayViewModel(new HintSession { Hints = new List<Hint> { below, right, left } }, new HintLabelService(), hint => Task.FromResult(true));
+
+            Assert.Equal(new Hint[] { left, right, below }, vm.Hints.Select(x => x.Hint));
+            Assert.Equal(labels, vm.Hints.Select(x => x.Label));
+        }
+
+        private static OverlayViewModel CreateViewModelWithHints(int count)
+        {
+            var hints = Enumerable.Range(0, count).Select(i => (Hint)new PlacedFakeHint(i * 20, 0)).ToList();
+            return new OverlayViewModel(new HintSession { Hints = hints }, new HintLabelService(), hint => Task.FromResult(true));
         }
 
         private static OverlayViewModel CreateViewModel(Hint hint, EventRecorder recorder, Func<Hint, Task<bool>> result)
@@ -293,7 +381,13 @@ namespace HuntAndPeck.Tests.ViewModels
 
             public string Name { get; }
 
-            public override Hint CreateClickHint() => _clickHint;
+            public override Hint CreateClickHint(MouseAction action)
+            {
+                RequestedActions.Add(action);
+                return _clickHint;
+            }
+
+            public List<MouseAction> RequestedActions { get; } = new List<MouseAction>();
 
             public override bool ClicksOnFailure => _clicksOnFailure;
 
@@ -337,6 +431,18 @@ namespace HuntAndPeck.Tests.ViewModels
         {
             public FakeHint()
                 : base(IntPtr.Zero, new Rect(0, 0, 10, 10))
+            {
+            }
+
+            public override void Invoke()
+            {
+            }
+        }
+
+        private sealed class PlacedFakeHint : Hint
+        {
+            public PlacedFakeHint(double left, double top)
+                : base(IntPtr.Zero, new Rect(left, top, 10, 10))
             {
             }
 

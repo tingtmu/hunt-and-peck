@@ -12,12 +12,9 @@
     PreviewKeyDown="OverlayView_OnPreviewKeyDown">
     <local:PhysicalOverlayWindow.Resources>
         <Style x:Key="HintStyle" TargetType="TextBlock">
-            <Setter Property="Background" Value="Yellow" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding Active}" Value="false">
-                    <Setter Property="Background" Value="LightYellow" />
-                </DataTrigger>
-            </Style.Triggers>
+            <!-- Colours from the Hint style option (HintColors) -->
+            <Setter Property="Background" Value="{DynamicResource HintBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource HintForeground}" />
         </Style>
         <!-- Typed-text box: a rounded pill in the Windows app theme's colours (OverlayTheme), shown once typing
              starts. Sizes are physical pixels (see PhysicalOverlayWindow). -->
@@ -61,7 +58,13 @@
         <SolidColorBrush Color="Transparent" />
     </local:PhysicalOverlayWindow.Background>
     <Grid x:Name="layoutGrid">
-        <TextBox x:Name="MatchStringControl" Text="{Binding MatchString, UpdateSourceTrigger=PropertyChanged, Mode=OneWayToSource}" VerticalAlignment="Bottom" HorizontalAlignment="Center" Style="{StaticResource MatchBoxStyle}" />
+        <TextBox x:Name="MatchStringControl" Text="{Binding MatchString, UpdateSourceTrigger=PropertyChanged, Mode=OneWayToSource}" VerticalAlignment="Bottom" HorizontalAlignment="Center" Style="{StaticResource MatchBoxStyle}"
+                 PreviewTextInput="MatchStringControl_OnPreviewTextInput">
+            <TextBox.RenderTransform>
+                <!-- Shaken when a typed letter matches no hint -->
+                <TranslateTransform x:Name="MatchBoxShake" />
+            </TextBox.RenderTransform>
+        </TextBox>
         <ItemsControl ItemsSource="{Binding Hints}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -73,6 +76,12 @@
                 <Style>
                     <Setter Property="Canvas.Top" Value="{Binding Hint.BoundingRectangle.Top}" />
                     <Setter Property="Canvas.Left" Value="{Binding Hint.BoundingRectangle.Left}" />
+                    <Style.Triggers>
+                        <!-- Hints that no longer match the typed letters disappear -->
+                        <DataTrigger Binding="{Binding Active}" Value="false">
+                            <Setter Property="UIElement.Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
                 </Style>
             </ItemsControl.ItemContainerStyle>
 
@@ -85,8 +94,11 @@
                             </Rectangle.Fill>
                         </Rectangle>-->
                         <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="1 1 0 0" Width="{Binding Hint.BoundingRectangle.Width}" Height="{Binding Hint.BoundingRectangle.Height}">
-                            <TextBlock Text="{Binding Label}" FontFamily="Helvetica, Arial" FontWeight="Bold" FontSize="{Binding FontSize}" Style="{StaticResource HintStyle}">
-                            </TextBlock>
+                            <!-- Margin -1 offsets the 1-px border so the label keeps its size and position -->
+                            <Border BorderBrush="{DynamicResource HintBorder}" BorderThickness="1" Margin="-1">
+                                <TextBlock Text="{Binding Label}" FontFamily="Helvetica, Arial" FontWeight="Bold" FontSize="{Binding FontSize}" Style="{StaticResource HintStyle}">
+                                </TextBlock>
+                            </Border>
                         </Viewbox>
                     </Grid>
                 </DataTemplate>

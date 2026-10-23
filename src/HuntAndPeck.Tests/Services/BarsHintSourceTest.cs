@@ -211,6 +211,8 @@ namespace HuntAndPeck.Tests.Services
                 return Result;
             }
 
+            public Task<HintSession> EnumPopupHintsAsync(IReadOnlyList<IntPtr> windows) => throw new NotSupportedException();
+
             public Task<bool> InvokeHintAsync(Hint hint) => Task.FromResult(true);
         }
     }

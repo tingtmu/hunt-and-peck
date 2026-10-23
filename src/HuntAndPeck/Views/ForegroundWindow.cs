@@ -17,9 +17,12 @@ namespace HuntAndPeck.Views
         private bool _closing;
         private bool _initialized;
 
+        /// <summary>False for a window that must leave the foreground alone (and so never closes on deactivation)</summary>
+        protected virtual bool TakesForeground => true;
+
         protected override void OnRender(DrawingContext drawingContext)
         {
-            if (!_initialized)
+            if (!_initialized && TakesForeground)
             {
                 // Always want this on top. SetForegroundWindow has a few conditions:
                 // https://msdn.microsoft.com/en-us/library/ms633539(VS.85).aspx

@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Linq;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows;
 using HuntAndPeck.Configuration;
 using HuntAndPeck.Models;
+using HuntAndPeck.NativeMethods;
+using HuntAndPeck.Services;
 using HuntAndPeck.Services.Interfaces;
 
 namespace HuntAndPeck.ViewModels
@@ -30,24 +33,28 @@ namespace HuntAndPeck.ViewModels
         /// fix a failed action (see <see cref="IHintProviderService.InvokeHintAsync"/>)
         /// </param>
         /// <param name="fontSize">Label font size</param>
+        /// <param name="hintStyle">Label colours</param>
         public OverlayViewModel(
             HintSession session,
             IHintLabelService hintLabelService,
             Func<Hint, Task<bool>> invokeHint,
-            double fontSize = FontSizeSetting.Default)
+            double fontSize = FontSizeSetting.Default,
+            HintStyle hintStyle = HintStyleSetting.Default)
         {
             _invokeHint = invokeHint;
+            HintStyle = hintStyle;
             _bounds = session.OwningWindowBounds;
             OverlayOwner = session.OverlayOwner;
 
-            var labels = hintLabelService.GetHintStrings(session.Hints.Count());
+            // Labelled in reading order, so labels follow the screen rather than the UI Automation tree
+            var hints = HintOrdering.ByReadingOrder(session.Hints);
+            var labels = hintLabelService.GetHintStrings(hints.Count);
             for (int i = 0; i < labels.Count; ++i)
             {
-                var hint = session.Hints[i];
-                _hints.Add(new HintViewModel(hint, fontSize)
+                _hints.Add(new HintViewModel(hints[i], fontSize)
                 {
                     Label = labels[i],
-                    Active = false
+                    Active = true
                 });
             }
         }
@@ -81,6 +88,9 @@ namespace HuntAndPeck.ViewModels
             }
         }
 
+        /// <summary>Label colours; applied by the view when it gets this view model</summary>
+        public HintStyle HintStyle { get; }
+
         public Action CloseOverlay { get; set; }
 
         /// <summary>
@@ -97,38 +107,66 @@ namespace HuntAndPeck.ViewModels
         /// </summary>
         public IntPtr OverlayOwner { get; }
 
+        /// <summary>
+        /// The typed letters: only hints whose label starts with them stay shown (<see cref="HintViewModel.Active"/>),
+        /// and a single match is invoked
+        /// </summary>
         public string MatchString
         {
             set
             {
+                var matching = new List<HintViewModel>();
                 foreach (var x in Hints)
                 {
-                    x.Active = false;
+                    x.Active = IsMatch(x, value);
+                    if (x.Active)
+                    {
+                        matching.Add(x);
+                    }
                 }
 
-                var matching = Hints.Where(x => x.Label.StartsWith(value, StringComparison.OrdinalIgnoreCase)).ToArray();
-                foreach (var x in matching)
+                if (matching.Count == 1)
                 {
-                    x.Active = true;
-                }
-
-                if (matching.Count() == 1)
-                {
-                    InvokeAndClose(matching.First().Hint);
+                    InvokeAndClose(matching[0].Hint);
                 }
             }
         }
 
         /// <summary>
-        /// True while Shift is held for the typed letter: the matched hint is clicked with the mouse instead of
-        /// using its UI Automation action (for elements whose action silently does nothing). Set by the view.
+        /// True if some hint's label starts with <paramref name="prefix"/>; the view rejects a letter that would
+        /// leave no hint, so a typo needs no Backspace
         /// </summary>
-        public bool ForceClick { get; set; }
+        public bool HasMatch(string prefix)
+        {
+            return Hints.Any(x => IsMatch(x, prefix));
+        }
+
+        private static bool IsMatch(HintViewModel hint, string prefix)
+        {
+            return hint.Label.StartsWith(prefix ?? "", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// The mouse action chosen by the modifiers held for the typed letter, else null: the matched hint is
+        /// clicked that way instead of using its UI Automation action. Shift: left click (for elements whose action
+        /// silently does nothing), Ctrl: right-click, Ctrl+Shift: double-click. Set by the view.
+        /// </summary>
+        public MouseAction? ForcedAction { get; set; }
+
+        /// <summary>The <see cref="ForcedAction"/> for the modifiers held with a typed letter</summary>
+        public static MouseAction? ForcedActionFor(bool shift, bool ctrl)
+        {
+            if (ctrl)
+            {
+                return shift ? MouseAction.DoubleClick : MouseAction.RightClick;
+            }
+            return shift ? MouseAction.LeftClick : (MouseAction?)null;
+        }
 
         /// <summary>
         /// Invokes the hint (see <see cref="InvokeThenCloseAsync"/>), then, if its action failed in a way a mouse
         /// click may fix (<see cref="Hint.ClicksOnFailure"/>) within <see cref="ClickFallbackDeadline"/>, clicks
-        /// the element instead, with the overlay closed. <see cref="ForceClick"/> clicks straight away.
+        /// the element instead, with the overlay closed. <see cref="ForcedAction"/> clicks straight away.
         /// </summary>
         private async void InvokeAndClose(Hint hint)
         {
@@ -139,9 +177,9 @@ namespace HuntAndPeck.ViewModels
             }
             _invoked = true;
 
-            if (ForceClick)
+            if (ForcedAction.HasValue)
             {
-                hint = hint.CreateClickHint() ?? hint;
+                hint = hint.CreateClickHint(ForcedAction.Value) ?? hint;
             }
 
             // Published before closing, covering any fallback click: headless mode reads PendingInvocation
@@ -155,7 +193,7 @@ namespace HuntAndPeck.ViewModels
                 {
                     return;
                 }
-                var click = hint.CreateClickHint();
+                var click = hint.CreateClickHint(MouseAction.LeftClick);
                 if (click == null)
                 {
                     return;

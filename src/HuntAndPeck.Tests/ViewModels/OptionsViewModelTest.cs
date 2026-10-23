@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
@@ -27,6 +27,7 @@ namespace HuntAndPeck.Tests.ViewModels
             var vm = Create();
 
             Assert.Equal("14", vm.FontSizeText);
+            Assert.Equal(HintStyle.Classic, vm.HintStyle);
             Assert.Equal("SADFJKLEWCMPGH", vm.HintAlphabetText);
             Assert.Equal("Alt+;", vm.MainHotKey.DisplayText);
             Assert.Equal("Ctrl+;", vm.TaskbarHotKey.DisplayText);
@@ -39,6 +40,7 @@ namespace HuntAndPeck.Tests.ViewModels
 
             vm.FontSizeText = "20";
             vm.HintAlphabetText = "jk";
+            vm.HintStyle = HintStyle.Theme;
             vm.MainHotKey.CaptureCommand.Execute(CtrlAltH);
 
             Assert.Empty(_settings.Saved);
@@ -52,6 +54,7 @@ namespace HuntAndPeck.Tests.ViewModels
             var vm = Create();
             vm.FontSizeText = "20.5";
             vm.HintAlphabetText = "jkl";
+            vm.HintStyle = HintStyle.HighContrast;
             vm.MainHotKey.CaptureCommand.Execute(CtrlAltH);
 
             Assert.True(vm.Save());
@@ -59,6 +62,7 @@ namespace HuntAndPeck.Tests.ViewModels
             var saved = Assert.Single(_settings.Saved);
             Assert.Equal(20.5, saved.FontSize);
             Assert.Equal("JKL", saved.HintAlphabet);
+            Assert.Equal(HintStyle.HighContrast, saved.HintStyle);
             Assert.Equal(CtrlAltH, saved.MainHotKey);
             Assert.Equal(UserSettingsSnapshot.Defaults.TaskbarHotKey, saved.TaskbarHotKey);
             Assert.Equal(CtrlAltH, Assert.Single(_applied).Item1);
@@ -93,6 +97,16 @@ namespace HuntAndPeck.Tests.ViewModels
 
             Assert.NotNull(vm.FontSizeError);
             AssertNothingDone();
+        }
+
+        [Fact]
+        public void HintStyleChoices_HaveDisplayNames()
+        {
+            var vm = Create();
+
+            Assert.Equal(
+                new[] { "Classic yellow", "Follow Windows theme", "High contrast" },
+                vm.HintStyleChoices.Select(x => x.Value));
         }
 
         [Fact]

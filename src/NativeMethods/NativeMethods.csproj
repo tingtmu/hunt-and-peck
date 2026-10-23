@@ -57,6 +57,7 @@
     <Compile Include="Dwmapi.cs" />
     <Compile Include="HotKeyEventArgs.cs" />
     <Compile Include="Kernel32.cs" />
+    <Compile Include="KeyboardHook.cs" />
     <Compile Include="KeyModifier.cs" />
     <Compile Include="MONITORINFO.cs" />
     <Compile Include="MonitorQueries.cs" />

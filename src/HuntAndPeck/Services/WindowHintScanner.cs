@@ -13,13 +13,14 @@ namespace HuntAndPeck.Services
     /// </summary>
     internal sealed class WindowScanTarget
     {
-        public WindowScanTarget(IntPtr handle, Rect windowBounds, Rect overlayBounds, HintFactoryMethod hintFactory, bool barsMode)
+        public WindowScanTarget(IntPtr handle, Rect windowBounds, Rect overlayBounds, HintFactoryMethod hintFactory, bool barsMode, bool allElements = false)
         {
             Handle = handle;
             WindowBounds = windowBounds;
             OverlayBounds = overlayBounds;
             HintFactory = hintFactory;
             BarsMode = barsMode;
+            AllElements = allElements;
         }
 
         public IntPtr Handle { get; private set; }
@@ -37,6 +38,9 @@ namespace HuntAndPeck.Services
         /// (see <see cref="HintBounds.CoversWindow"/>) and drop LegacyIAccessible hints inside other hints
         /// </summary>
         public bool BarsMode { get; private set; }
+
+        /// <summary>Also scan elements no hint can act on (debug overlay)</summary>
+        public bool AllElements { get; private set; }
     }
 
     /// <summary>
@@ -57,7 +61,7 @@ namespace HuntAndPeck.Services
         public static List<Hint> Scan(WindowScanTarget target)
         {
             var stopwatch = Stopwatch.StartNew();
-            var scan = UiAutomationElementScanner.TryScan(target.Handle, target.BarsMode);
+            var scan = UiAutomationElementScanner.TryScan(target.Handle, target.BarsMode, target.AllElements);
             if (scan == null)
             {
                 return null;

@@ -7,21 +7,16 @@ namespace HuntAndPeck.Models
     /// <summary>
     /// Represents a Windows UI Automation based focus hint
     /// </summary>
-    internal class UiAutomationFocusHint : Hint
+    internal class UiAutomationFocusHint : UiAutomationHint
     {
-        private readonly IUIAutomationElement _automationElement;
-
         public UiAutomationFocusHint(IntPtr owningWindow, IUIAutomationElement automationElement, Rect boundingRectangle)
-            : base(owningWindow, boundingRectangle)
+            : base(owningWindow, automationElement, boundingRectangle)
         {
-            _automationElement = automationElement;
         }
-
-        public override Hint CreateClickHint() => new UiAutomationClickHint(OwningWindow, _automationElement, BoundingRectangle);
 
         public override void Invoke()
         {
-            _automationElement.SetFocus();
+            AutomationElement.SetFocus();
         }
     }
 }

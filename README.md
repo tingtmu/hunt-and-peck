@@ -1,16 +1,16 @@
-# HuntAndPeck 1.8
+# HuntAndPeck 1.9
 
 Simple vimium/vimperator style navigation for Windows applications based on the UI Automation framework. In essence, it works the same as screen readers or accessibility programs but with the goal of making any Windows program faster to use.
 
-It works for any Windows program (excluding Modern UI apps :))
+It works for any Windows program that exposes UI Automation (Win32, WinForms, WPF, WinUI, browsers).
 
-This is the 1.8 build (a fork of zsims/hunt-and-peck by Zachary Sims): https://github.com/tingtmu/hunt-and-peck
+This is the 1.9 build (a fork of zsims/hunt-and-peck by Zachary Sims): https://github.com/tingtmu/hunt-and-peck
 
 # Download
 
 https://github.com/tingtmu/hunt-and-peck/releases/latest
 
-Download `HuntAndPeck-1.8.2.zip` (portable, no installer), unzip it anywhere and run `hap.exe`. To update an
+Download `HuntAndPeck-1.9.0.zip` (portable, no installer), unzip it anywhere and run `hap.exe`. To update an
 existing install, unzip over the old folder. `SHA256SUMS.txt` is there to verify the download.
 
 # Configuration
@@ -22,6 +22,7 @@ Right-click (or left-click) the tray icon and select `Options`:
   another app already uses the combination, the window says so and the old hotkey stays active.
 - **Letters**: the letters used for hint labels, 2-26 different letters A-Z (default `SADFJKLEWCMPGH`).
 - **Font size**: hint label size, 6-72 (default 14).
+- **Hint style**: hint label colours: classic yellow (default), follow the Windows light/dark theme, or high contrast.
 
 Changes apply when you press `OK`; `Cancel` (or Esc) discards them.
 
@@ -52,8 +53,19 @@ Where things live:
       launch the app).
 3. An overlay window will be displayed, type any of the hint characters you see. What you type shows in a
    small box at the bottom of the screen, in light or dark colours following the Windows app theme.
-    - Hold `Shift` while typing the last letter to click the element with the mouse instead (e.g. type
-      `d` then `Shift + D`). Use it for an element that ignores its UI Automation action.
+   Hints that no longer match disappear; a letter that matches nothing is ignored (the box shakes).
+    - Modifiers held while typing the last letter choose a mouse action instead (e.g. type `d` then
+      `Ctrl + D`); they may stay held:
+
+      | Last letter with | Action |
+      |---|---|
+      | (nothing) | the element's UI Automation action (a click if that fails) |
+      | `Shift` | left click, for an element that ignores its UI Automation action |
+      | `Ctrl` | right-click (context menu) |
+      | `Ctrl + Shift` | double-click (e.g. open a file) |
+    - Menus: when a hint opens a menu or dropdown (a right-click menu, a submenu), its hints appear on their
+      own and the menu stays open. Letters pick an item, `Esc` hides the hints, and any other key (arrows,
+      `Enter`) goes to the menu as usual.
 
 Alternatively, Hunt and Peck can be launched via the command-line or AutoHotKey by specifying `/hint`:
 ```
