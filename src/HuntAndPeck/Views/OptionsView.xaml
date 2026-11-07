@@ -116,7 +116,7 @@
 
                 <Label Grid.Row="0" Grid.Column="0" Content="_Letters:" Target="{Binding ElementName=AlphabetBox}" />
                 <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,8">
-                    <ComboBox x:Name="AlphabetPresetBox" Width="200" HorizontalAlignment="Left" Margin="0,0,0,4"
+                    <ComboBox x:Name="AlphabetPresetBox" MinWidth="240" HorizontalAlignment="Left" Margin="0,0,0,4"
                               ItemsSource="{Binding HintAlphabetPresetChoices}"
                               DisplayMemberPath="Name"
                               SelectedItem="{Binding SelectedHintAlphabetPreset}"
