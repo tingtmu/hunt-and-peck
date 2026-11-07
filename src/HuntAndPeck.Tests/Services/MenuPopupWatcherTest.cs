@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using HuntAndPeck.Services;
 using Xunit;
 
@@ -12,7 +13,7 @@ namespace HuntAndPeck.Tests.Services
         private static readonly IntPtr Owner = new IntPtr(1);
 
         [Fact]
-        public void NewPopupOfTheApp_IsFoundAfterItSettles()
+        public async Task NewPopupOfTheApp_IsFoundAfterItSettles()
         {
             var windows = new FakeWindows();
             var clock = new FakeClock();
@@ -28,14 +29,14 @@ namespace HuntAndPeck.Tests.Services
                 }
             };
 
-            var menus = watcher.WaitForNewAsync(Owner, before).Result;
+            var menus = await watcher.WaitForNewAsync(Owner, before);
 
             Assert.Equal(new[] { new IntPtr(5) }, menus);
             Assert.Equal(MenuPopupWatcher.SettleDelay, clock.Delays[clock.Delays.Count - 1]);
         }
 
         [Fact]
-        public void DialogsOtherAppsShadowsAndExistingPopups_AreNotMenus()
+        public async Task DialogsOtherAppsShadowsAndExistingPopups_AreNotMenus()
         {
             var windows = new FakeWindows();
             windows.Add(new TopLevelWindow(new IntPtr(4), App, "#32768", true));
@@ -47,20 +48,20 @@ namespace HuntAndPeck.Tests.Services
             windows.Add(new TopLevelWindow(new IntPtr(7), App, "SysShadow", true));
             windows.Add(new TopLevelWindow(new IntPtr(8), App, "tooltips_class32", true));
 
-            var menus = watcher.WaitForNewAsync(Owner, before).Result;
+            var menus = await watcher.WaitForNewAsync(Owner, before);
 
             Assert.Empty(menus);
             Assert.True(clock.Now >= MenuPopupWatcher.AppearTimeout);
         }
 
         [Fact]
-        public void ShorterAppearTimeout_GivesUpSooner()
+        public async Task ShorterAppearTimeout_GivesUpSooner()
         {
             // Repeat mode after an action that rarely opens a menu
             var clock = new FakeClock();
             var watcher = new MenuPopupWatcher(new FakeWindows(), clock.Delay, () => clock.Now);
 
-            var menus = watcher.WaitForNewAsync(Owner, watcher.Snapshot(), TimeSpan.FromMilliseconds(100)).Result;
+            var menus = await watcher.WaitForNewAsync(Owner, watcher.Snapshot(), TimeSpan.FromMilliseconds(100));
 
             Assert.Empty(menus);
             Assert.InRange(clock.Now, TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100) + MenuPopupWatcher.PollInterval);

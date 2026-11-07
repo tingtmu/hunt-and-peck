@@ -18,12 +18,12 @@ namespace HuntAndPeck.Tests.ViewModels
         private static readonly IntPtr Menu = new IntPtr(5);
 
         [Fact]
-        public void MenuOpenedByTheHint_GetsTheMenuOverlay()
+        public async Task MenuOpenedByTheHint_GetsTheMenuOverlay()
         {
             var setup = new Setup();
             setup.MenuAppearsAfterInvoke();
 
-            var followed = setup.Follower.FollowAsync(setup.Session, setup.InvokedOverlay(), setup.Before, CancellationToken.None).Result;
+            var followed = await setup.Follower.FollowAsync(setup.Session, setup.InvokedOverlay(), setup.Before, CancellationToken.None);
 
             Assert.True(followed);
             var shown = Assert.Single(setup.Shown);
@@ -32,13 +32,13 @@ namespace HuntAndPeck.Tests.ViewModels
         }
 
         [Fact]
-        public void NoHintInvoked_DoesNotWatch()
+        public async Task NoHintInvoked_DoesNotWatch()
         {
             var setup = new Setup();
             setup.MenuAppearsAfterInvoke();
             var overlay = new OverlayViewModel(setup.Session, new HintLabelService(), hint => Task.FromResult(true));
 
-            var followed = setup.Follower.FollowAsync(setup.Session, overlay, setup.Before, CancellationToken.None).Result;
+            var followed = await setup.Follower.FollowAsync(setup.Session, overlay, setup.Before, CancellationToken.None);
 
             Assert.False(followed);
             Assert.Empty(setup.Provider.Enumerated);
@@ -46,11 +46,11 @@ namespace HuntAndPeck.Tests.ViewModels
         }
 
         [Fact]
-        public void NoMenu_ShowsNothing()
+        public async Task NoMenu_ShowsNothing()
         {
             var setup = new Setup();
 
-            var followed = setup.Follower.FollowAsync(setup.Session, setup.InvokedOverlay(), setup.Before, CancellationToken.None).Result;
+            var followed = await setup.Follower.FollowAsync(setup.Session, setup.InvokedOverlay(), setup.Before, CancellationToken.None);
 
             Assert.False(followed);
             Assert.Empty(setup.Provider.Enumerated);
@@ -58,26 +58,26 @@ namespace HuntAndPeck.Tests.ViewModels
         }
 
         [Fact]
-        public void UserMovedOn_ShowsNothing()
+        public async Task UserMovedOn_ShowsNothing()
         {
             var setup = new Setup();
             setup.MenuAppearsAfterInvoke();
             var following = new CancellationTokenSource();
             following.Cancel();
 
-            var followed = setup.Follower.FollowAsync(setup.Session, setup.InvokedOverlay(), setup.Before, following.Token).Result;
+            var followed = await setup.Follower.FollowAsync(setup.Session, setup.InvokedOverlay(), setup.Before, following.Token);
 
             Assert.False(followed);
             Assert.Empty(setup.Shown);
         }
 
         [Fact]
-        public void AnotherSessionActive_ShowsNothing()
+        public async Task AnotherSessionActive_ShowsNothing()
         {
             var setup = new Setup { SessionFree = false };
             setup.MenuAppearsAfterInvoke();
 
-            var followed = setup.Follower.FollowAsync(setup.Session, setup.InvokedOverlay(), setup.Before, CancellationToken.None).Result;
+            var followed = await setup.Follower.FollowAsync(setup.Session, setup.InvokedOverlay(), setup.Before, CancellationToken.None);
 
             Assert.False(followed);
             Assert.Empty(setup.Shown);
