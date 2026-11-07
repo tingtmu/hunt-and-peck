@@ -1,10 +1,10 @@
 {
-    "version": "1.11.0",
+    "version": "1.12.0",
     "description": "Keyboard hints for any Windows app via UI Automation (vimium/vimperator style)",
     "homepage": "https://github.com/tingtmu/hunt-and-peck",
     "license": "Unknown",
-    "url": "https://github.com/tingtmu/hunt-and-peck/releases/download/v1.11.0/HuntAndPeck-1.11.0.zip",
-    "hash": "22c9c7ebf56fa8cb31b6b6809b83d68777d3ca7d3ea750bea67f375ed8a962a8",
+    "url": "https://github.com/tingtmu/hunt-and-peck/releases/download/v1.12.0/HuntAndPeck-1.12.0.zip",
+    "hash": "c737d288ada8a8f2f69130bb9ace6111ca0d4c5ae028ee7571d823c5cc43758d",
     "bin": "hap.exe",
     "shortcuts": [
         [
