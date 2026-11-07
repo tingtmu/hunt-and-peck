@@ -13,6 +13,16 @@ https://github.com/tingtmu/hunt-and-peck/releases/latest
 Download `HuntAndPeck-1.10.0.zip` (portable, no installer), unzip it anywhere and run `hap.exe`. To update an
 existing install, unzip over the old folder. `SHA256SUMS.txt` is there to verify the download.
 
+## Install with Scoop
+
+```
+scoop bucket add hap https://github.com/tingtmu/hunt-and-peck
+scoop install hap/huntandpeck
+```
+
+`scoop update huntandpeck` installs new releases. Scoop runs `hap.exe` from its `current` folder, so the path
+(and your settings) stay the same across updates.
+
 # Configuration
 
 Right-click (or left-click) the tray icon and select `Options`:

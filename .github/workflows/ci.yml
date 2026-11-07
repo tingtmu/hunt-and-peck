@@ -98,3 +98,83 @@ jobs:
           files: |
             HuntAndPeck-*.zip
             SHA256SUMS.txt
+
+  # Keeps the Scoop bucket (bucket/huntandpeck.json) in step with the published release
+  bucket:
+    needs: release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+
+      - name: Update Scoop manifest
+        env:
+          TAG: ${{ github.ref_name }}
+          BRANCH: ${{ github.event.repository.default_branch }}
+          REPO: ${{ github.repository }}
+        run: |
+          $version = $env:TAG.Substring(1)
+          $manifestPath = 'bucket\huntandpeck.json'
+          $text = [System.IO.File]::ReadAllText("$PWD\$manifestPath")
+
+          # Never move the bucket backwards (e.g. a tag re-pushed for an old release)
+          $current = ($text | ConvertFrom-Json).version
+          if ([version]($version -replace '-.*$', '') -lt [version]($current -replace '-.*$', '')) {
+            Write-Host "Bucket is at $current, newer than $version; leaving it alone."
+            exit 0
+          }
+
+          $zip = "HuntAndPeck-$version.zip"
+          $sums = [System.IO.File]::ReadAllText("$PWD\SHA256SUMS.txt")
+          $match = [regex]::Match($sums, "(?m)^(?<hash>[0-9a-fA-F]{64}) +\*?$([regex]::Escape($zip))\r?$")
+          if (-not $match.Success) {
+            throw "No SHA256 for $zip in SHA256SUMS.txt"
+          }
+          $hash = $match.Groups['hash'].Value.ToLowerInvariant()
+          $url = "https://github.com/$env:REPO/releases/download/$env:TAG/$zip"
+
+          # Edit only the top-level (4-space indented) fields; autoupdate's own url/hash are indented deeper
+          $text = [regex]::Replace($text, '(?m)^(    "version": ")[^"]*(")', { param($m) $m.Groups[1].Value + $version + $m.Groups[2].Value })
+          $text = [regex]::Replace($text, '(?m)^(    "url": ")[^"]*(")', { param($m) $m.Groups[1].Value + $url + $m.Groups[2].Value })
+          $text = [regex]::Replace($text, '(?m)^(    "hash": ")[^"]*(")', { param($m) $m.Groups[1].Value + $hash + $m.Groups[2].Value })
+
+          # Must still be valid JSON with the new values before it is written
+          $check = $text | ConvertFrom-Json
+          if ($check.version -ne $version -or $check.url -ne $url -or $check.hash -ne $hash) {
+            throw 'Manifest edit did not produce the expected version, url and hash'
+          }
+          [System.IO.File]::WriteAllText("$PWD\$manifestPath", $text, (New-Object System.Text.UTF8Encoding($false)))
+
+          git add $manifestPath
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host 'Manifest already up to date; nothing to commit.'
+            exit 0
+          }
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "scoop: huntandpeck $version"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          # Another push to the branch may land meanwhile: rebase and retry
+          for ($i = 1; $i -le 3; $i++) {
+            git pull --rebase origin $env:BRANCH
+            if ($LASTEXITCODE -eq 0) {
+              git push origin "HEAD:$env:BRANCH"
+              if ($LASTEXITCODE -eq 0) { exit 0 }
+            }
+            Start-Sleep -Seconds (5 * $i)
+          }
+          throw 'Could not push the manifest update'

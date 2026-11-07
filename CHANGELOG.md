@@ -6,6 +6,11 @@
 - **Alt + last letter** moves the mouse onto the hint's label, where you saw it, instead of the element's centre
   (which, on a wide list row or text box, could be far from the label). Clicks still land on the centre.
 
+### Install
+- Scoop: this repo is now a Scoop bucket. `scoop bucket add hap https://github.com/tingtmu/hunt-and-peck`, then
+  `scoop install hap/huntandpeck`; `scoop update huntandpeck` picks up new releases. The release workflow updates
+  `bucket/huntandpeck.json` (version, URL, SHA-256) after each `v*` tag is published.
+
 ## 1.10.1 (2026-10-23)
 
 No changes to the app itself.
