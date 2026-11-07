@@ -13,13 +13,14 @@
 
         public UserSettingsSnapshot(
             double fontSize, string hintAlphabet, HotKeyCombination mainHotKey, HotKeyCombination taskbarHotKey,
-            HintStyle hintStyle = HintStyleSetting.Default)
+            HintStyle hintStyle = HintStyleSetting.Default, bool checkForUpdates = true)
         {
             FontSize = fontSize;
             HintStyle = hintStyle;
             HintAlphabet = hintAlphabet;
             MainHotKey = mainHotKey;
             TaskbarHotKey = taskbarHotKey;
+            CheckForUpdates = checkForUpdates;
         }
 
         /// <summary>Hint label font size</summary>
@@ -36,5 +37,14 @@
 
         /// <summary>Hotkey that shows hints for the taskbar</summary>
         public HotKeyCombination TaskbarHotKey { get; }
+
+        /// <summary>Whether HuntAndPeck looks for a newer release at start-up (at most once a day)</summary>
+        public bool CheckForUpdates { get; }
+
+        /// <summary>A copy with the update check setting changed</summary>
+        public UserSettingsSnapshot WithCheckForUpdates(bool checkForUpdates)
+        {
+            return new UserSettingsSnapshot(FontSize, HintAlphabet, MainHotKey, TaskbarHotKey, HintStyle, checkForUpdates);
+        }
     }
 }

@@ -146,6 +146,15 @@
             </Grid>
         </GroupBox>
 
+        <GroupBox Header="Updates">
+            <StackPanel>
+                <CheckBox x:Name="CheckForUpdatesBox" Content="_Check for updates automatically"
+                          IsChecked="{Binding CheckForUpdates}" />
+                <TextBlock Style="{StaticResource HelpText}"
+                           Text="Looks for a newer release at start-up, at most once a day, and tells you; it never downloads anything. The tray menu's Check for updates checks now." />
+            </StackPanel>
+        </GroupBox>
+
         <GroupBox Header="Overlay keys">
             <StackPanel Grid.IsSharedSizeScope="True">
                 <ItemsControl ItemsSource="{Binding OverlayKeys}" Focusable="False">

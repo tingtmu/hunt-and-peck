@@ -13,6 +13,7 @@ using HuntAndPeck.Diagnostics;
 using HuntAndPeck.Models;
 using HuntAndPeck.NativeMethods;
 using HuntAndPeck.Services;
+using HuntAndPeck.Updates;
 using HuntAndPeck.ViewModels;
 using HuntAndPeck.Views;
 
@@ -245,6 +246,8 @@ namespace HuntAndPeck
             var startupRegistration = new StartupRegistrationService(new RegistryRunKey(), exePath, File.Exists);
             UpdateStartupPathIfMoved(startupRegistration);
 
+            var updateChecker = CreateUpdateChecker(exePath);
+
             // Create this as late as possible as it has a window
             _keyListenerService = new KeyListenerService();
 
@@ -264,7 +267,8 @@ namespace HuntAndPeck
                 ShowNotice,
                 _menuPopups,
                 ShowMenuOverlay,
-                () => new HoverScroller(onKeyDown => new KeyboardHook(onKeyDown), MouseInput.Wheel, User32.GetForegroundWindow, CursorPosition, KeyboardHook.IsKeyDown));
+                () => new HoverScroller(onKeyDown => new KeyboardHook(onKeyDown), MouseInput.Wheel, User32.GetForegroundWindow, CursorPosition, KeyboardHook.IsKeyDown),
+                () => _ = updateChecker.CheckManuallyAsync());
 
             var shellView = new ShellView
             {
@@ -280,7 +284,42 @@ namespace HuntAndPeck
             {
                 _trayNotifier.ShowWarning(shellViewModel.HotKeyWarning);
             }
+
+            // Not awaited: it waits ~30 s, checks in the background and never throws
+            _ = updateChecker.RunAutomaticAsync();
             return true;
+        }
+
+        /// <summary>
+        /// The update checker: the GitHub release client, results shown as tray balloons
+        /// </summary>
+        private UpdateChecker CreateUpdateChecker(string exePath)
+        {
+            return new UpdateChecker(
+                new GitHubReleaseClient(),
+                new UpdateCheckState(),
+                () => _settings.Load().CheckForUpdates,
+                typeof(App).Assembly.GetName().Version,
+                ScoopInstall.IsScoopPath(exePath),
+                () => DateTime.UtcNow,
+                Task.Delay,
+                _trayNotifier.ShowInfo,
+                OpenInBrowser);
+        }
+
+        /// <summary>
+        /// Opens a web page in the default browser; a failure is only logged (the balloon was just a convenience)
+        /// </summary>
+        private static void OpenInBrowser(string url)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true })?.Dispose();
+            }
+            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception || ex is InvalidOperationException)
+            {
+                Trace.TraceWarning("Updates: opening {0} failed: {1}", url, ex);
+            }
         }
 
         /// <summary>

@@ -34,6 +34,7 @@ namespace HuntAndPeck.ViewModels
         private readonly Action<NoticeViewModel> _showNotice;
         private readonly MenuHintFollower _menuHints;
         private readonly Func<IDisposable> _startHoverScroll;
+        private readonly Action _checkForUpdates;
 
         /// <summary>Scrolling under the cursor after the last hover (see <see cref="StartHoverScroll"/>); null if none</summary>
         private IDisposable _hoverScroll;
@@ -65,8 +66,10 @@ namespace HuntAndPeck.ViewModels
             Action<NoticeViewModel> showNotice = null,
             MenuPopupWatcher menuPopups = null,
             Action<OverlayViewModel, IReadOnlyList<IntPtr>> showMenuOverlay = null,
-            Func<IDisposable> startHoverScroll = null)
+            Func<IDisposable> startHoverScroll = null,
+            Action checkForUpdates = null)
         {
+            _checkForUpdates = checkForUpdates;
             _showNotice = showNotice;
             _startHoverScroll = startHoverScroll;
             if (menuPopups != null && showMenuOverlay != null)
@@ -96,6 +99,7 @@ namespace HuntAndPeck.ViewModels
 
             ShowOptionsCommand = new DelegateCommand(ShowOptions);
             ShowAboutCommand = new DelegateCommand(ShowAbout);
+            CheckForUpdatesCommand = new DelegateCommand(() => _checkForUpdates?.Invoke());
             ExitCommand = new DelegateCommand(Exit);
             ToggleStartWithWindowsCommand = new DelegateCommand(ToggleStartWithWindows);
             RefreshStartWithWindows();
@@ -113,6 +117,9 @@ namespace HuntAndPeck.ViewModels
 
         public DelegateCommand ShowOptionsCommand { get; }
         public DelegateCommand ShowAboutCommand { get; }
+
+        /// <summary>The tray menu's "Check for updates": checks now and reports the result</summary>
+        public DelegateCommand CheckForUpdatesCommand { get; }
         public DelegateCommand ExitCommand { get; }
         public DelegateCommand ToggleStartWithWindowsCommand { get; }
 

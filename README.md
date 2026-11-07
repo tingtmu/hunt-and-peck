@@ -35,6 +35,10 @@ Right-click (or left-click) the tray icon and select `Options`:
   Vimium classic `SADFJKLEWCMPGH`, Colemak, Dvorak) to fill the box, or type your own: it then shows as Custom.
 - **Font size**: hint label size, 6-72 (default 14).
 - **Hint style**: hint label colours: classic yellow (default), follow the Windows light/dark theme, or high contrast.
+- **Check for updates automatically** (default on): about 30 seconds after start, and at most once a day, HuntAndPeck
+  asks GitHub for the latest release and shows a notification if it is newer. The tray menu's `Check for updates`
+  checks right away and always tells you the result. HuntAndPeck never downloads or replaces anything: click the
+  notification to open the release page, or, if it runs from a Scoop install, run `scoop update huntandpeck`.
 
 The window also lists the keys that work while the hints are shown (`Overlay keys`; read-only). The window
 keeps its size and scrolls if its content doesn't fit.

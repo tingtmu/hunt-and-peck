@@ -441,6 +441,27 @@ namespace HuntAndPeck.Tests.ViewModels
         }
 
         [Fact]
+        public void CheckForUpdatesCommand_RunsTheCheck_Once()
+        {
+            var checks = 0;
+            var shell = new ShellViewModel(
+                vm => { }, vm => { }, vm => { }, text => { }, (context, ex) => { },
+                new HintLabelService(), new FakeHintProvider(), null, new FakeKeyListener(),
+                new StartupRegistrationService(new FakeRegistryRunKey(), ExePath, path => true),
+                new FakeUserSettings(), message => { }, checkForUpdates: () => checks++);
+
+            shell.CheckForUpdatesCommand.Execute(null);
+
+            Assert.Equal(1, checks);
+        }
+
+        [Fact]
+        public void CheckForUpdatesCommand_WithoutACheck_DoesNothing()
+        {
+            CreateShell(new FakeRegistryRunKey(), new List<string>()).CheckForUpdatesCommand.Execute(null);
+        }
+
+        [Fact]
         public void HotKeys_ComeFromSettings()
         {
             var keys = new FakeKeyListener();

@@ -17,7 +17,8 @@ namespace HuntAndPeck.Configuration
         public UserSettingsSnapshot Load()
         {
             var settings = Settings.Default;
-            return Parse(settings.FontSize, settings.HintAlphabet, settings.MainHotKey, settings.TaskbarHotKey, settings.HintStyle, ReportInvalid);
+            return Parse(settings.FontSize, settings.HintAlphabet, settings.MainHotKey, settings.TaskbarHotKey, settings.HintStyle, ReportInvalid)
+                .WithCheckForUpdates(settings.CheckForUpdates);
         }
 
         public void Save(UserSettingsSnapshot values)
@@ -28,10 +29,11 @@ namespace HuntAndPeck.Configuration
             settings.HintAlphabet = values.HintAlphabet;
             settings.MainHotKey = values.MainHotKey.ToStorageString();
             settings.TaskbarHotKey = values.TaskbarHotKey.ToStorageString();
+            settings.CheckForUpdates = values.CheckForUpdates;
             settings.Save();
             Trace.TraceInformation(
-                "Settings: saved font size {0}, hint style {1}, alphabet {2}, hotkeys {3} / {4}",
-                settings.FontSize, settings.HintStyle, settings.HintAlphabet, settings.MainHotKey, settings.TaskbarHotKey);
+                "Settings: saved font size {0}, hint style {1}, alphabet {2}, hotkeys {3} / {4}, check for updates {5}",
+                settings.FontSize, settings.HintStyle, settings.HintAlphabet, settings.MainHotKey, settings.TaskbarHotKey, settings.CheckForUpdates);
         }
 
         /// <summary>
