@@ -30,7 +30,9 @@ Right-click (or left-click) the tray icon and select `Options`:
 - **Hotkeys**: click the box for the window or taskbar hotkey and press the new combination (Ctrl, Alt or
   Win plus a key, or F1-F24 on their own). `Reset` restores the default (`Alt + ;` and `Ctrl + ;`). If
   another app already uses the combination, the window says so and the old hotkey stays active.
-- **Letters**: the letters used for hint labels, 2-26 different letters A-Z (default `SADFJKLEWCMPGH`).
+- **Letters**: the letters used for hint labels, 2-26 different letters A-Z (default `ASDFGHJKLQWERUIO`: the QWERTY
+  home row, then the top-row keys next to it). Pick a preset (QWERTY home + top row, QWERTY home row only,
+  Vimium classic `SADFJKLEWCMPGH`, Colemak, Dvorak) to fill the box, or type your own: it then shows as Custom.
 - **Font size**: hint label size, 6-72 (default 14).
 - **Hint style**: hint label colours: classic yellow (default), follow the Windows light/dark theme, or high contrast.
 

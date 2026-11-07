@@ -57,10 +57,10 @@ namespace HuntAndPeck.Tests.Services
         public void GetHintStrings_DefaultAlphabet_Unchanged()
         {
             var defaultService = new HintLabelService();
-            var explicitService = new HintLabelService("SADFJKLEWCMPGH");
+            var explicitService = new HintLabelService("ASDFGHJKLQWERUIO");
 
             Assert.Equal(explicitService.GetHintStrings(50), defaultService.GetHintStrings(50));
-            Assert.Equal(new[] { "S", "A", "D" }, defaultService.GetHintStrings(3));
+            Assert.Equal(new[] { "A", "S", "D" }, defaultService.GetHintStrings(3));
         }
 
         [Theory]
@@ -102,9 +102,9 @@ namespace HuntAndPeck.Tests.Services
         /// exact power above 14, 196 = 14^2, is outside the range.
         /// </summary>
         [Fact]
-        public void GetHintStrings_DefaultAlphabet_MatchesOldImplementation()
+        public void GetHintStrings_OriginalAlphabet_MatchesOldImplementation()
         {
-            var service = new HintLabelService();
+            var service = new HintLabelService("SADFJKLEWCMPGH");
             var differing = new List<int>();
 
             for (var count = 1; count <= 195; ++count)

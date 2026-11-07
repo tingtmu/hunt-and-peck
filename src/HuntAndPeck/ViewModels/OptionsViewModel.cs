@@ -105,7 +105,34 @@ namespace HuntAndPeck.ViewModels
         public string HintAlphabetText
         {
             get { return _hintAlphabetText; }
-            set { _hintAlphabetText = value; NotifyOfPropertyChange(); }
+            set
+            {
+                _hintAlphabetText = value;
+                NotifyOfPropertyChange();
+                NotifyOfPropertyChange(nameof(SelectedHintAlphabetPreset));
+            }
+        }
+
+        /// <summary>The presets to choose from, then <see cref="HintAlphabetPresets.Custom"/></summary>
+        public IReadOnlyList<HintAlphabetPreset> HintAlphabetPresetChoices { get; } =
+            HintAlphabetPresets.All.Concat(new[] { HintAlphabetPresets.Custom }).ToList();
+
+        /// <summary>
+        /// The preset the letters match, else <see cref="HintAlphabetPresets.Custom"/>. Choosing a preset fills in
+        /// its letters; choosing Custom keeps the letters as they are.
+        /// </summary>
+        public HintAlphabetPreset SelectedHintAlphabetPreset
+        {
+            get { return HintAlphabetPresets.Find(HintAlphabetText); }
+            set
+            {
+                if (value?.Letters != null)
+                {
+                    HintAlphabetText = value.Letters;
+                }
+                // Choosing Custom (or clearing the box) while the letters match a preset can't deselect it
+                NotifyOfPropertyChange();
+            }
         }
 
         public string HintAlphabetError

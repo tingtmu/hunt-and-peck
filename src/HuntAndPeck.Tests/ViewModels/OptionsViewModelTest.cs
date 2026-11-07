@@ -28,9 +28,79 @@ namespace HuntAndPeck.Tests.ViewModels
 
             Assert.Equal("14", vm.FontSizeText);
             Assert.Equal(HintStyle.Classic, vm.HintStyle);
-            Assert.Equal("SADFJKLEWCMPGH", vm.HintAlphabetText);
+            Assert.Equal("ASDFGHJKLQWERUIO", vm.HintAlphabetText);
             Assert.Equal("Alt+;", vm.MainHotKey.DisplayText);
             Assert.Equal("Ctrl+;", vm.TaskbarHotKey.DisplayText);
+        }
+
+        [Fact]
+        public void HintAlphabetPresetChoices_ArePresetsThenCustom()
+        {
+            var choices = Create().HintAlphabetPresetChoices;
+
+            Assert.Equal(
+                new[] { "QWERTY home + top row", "QWERTY home row only", "Vimium classic", "Colemak", "Dvorak", "Custom" },
+                choices.Select(x => x.Name).ToArray());
+        }
+
+        [Theory]
+        [InlineData("ASDFGHJKLQWERUIO", "QWERTY home + top row")]
+        [InlineData("SADFJKLEWCMPGH", "Vimium classic")]
+        [InlineData("JKL", "Custom")]
+        public void SelectedHintAlphabetPreset_StartsAsTheSavedLetters(string saved, string name)
+        {
+            var defaults = UserSettingsSnapshot.Defaults;
+            var settings = new FakeUserSettings(new UserSettingsSnapshot(
+                defaults.FontSize, saved, defaults.MainHotKey, defaults.TaskbarHotKey, defaults.HintStyle));
+
+            var vm = new OptionsViewModel(settings, Apply, _suspended.Add);
+
+            Assert.Equal(name, vm.SelectedHintAlphabetPreset.Name);
+        }
+
+        [Fact]
+        public void SelectingAPreset_FillsTheLettersAndSavesThem()
+        {
+            var vm = Create();
+            var changed = new List<string>();
+            vm.PropertyChanged += (s, e) => changed.Add(e.PropertyName);
+
+            vm.SelectedHintAlphabetPreset = HintAlphabetPresets.All.Single(x => x.Name == "Dvorak");
+
+            Assert.Equal("AOEUIDHTNSPYFGCRL", vm.HintAlphabetText);
+            Assert.Contains("HintAlphabetText", changed);
+            Assert.True(vm.Save());
+            Assert.Equal("AOEUIDHTNSPYFGCRL", Assert.Single(_settings.Saved).HintAlphabet);
+        }
+
+        [Fact]
+        public void SelectingCustom_KeepsTheLetters()
+        {
+            var vm = Create();
+            vm.HintAlphabetText = "jkl";
+
+            vm.SelectedHintAlphabetPreset = HintAlphabetPresets.Custom;
+
+            Assert.Equal("jkl", vm.HintAlphabetText);
+            Assert.Same(HintAlphabetPresets.Custom, vm.SelectedHintAlphabetPreset);
+        }
+
+        [Fact]
+        public void EditingTheLetters_SelectsTheMatchingPresetElseCustom()
+        {
+            var vm = Create();
+            var changed = new List<string>();
+            vm.PropertyChanged += (s, e) => changed.Add(e.PropertyName);
+
+            vm.HintAlphabetText = "asdfghjkl";
+            Assert.Equal("QWERTY home row only", vm.SelectedHintAlphabetPreset.Name);
+            Assert.Contains("SelectedHintAlphabetPreset", changed);
+
+            vm.HintAlphabetText = "asdfghjk";
+            Assert.Same(HintAlphabetPresets.Custom, vm.SelectedHintAlphabetPreset);
+
+            vm.HintAlphabetText = "";
+            Assert.Same(HintAlphabetPresets.Custom, vm.SelectedHintAlphabetPreset);
         }
 
         [Fact]

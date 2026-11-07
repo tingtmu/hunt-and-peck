@@ -11,6 +11,11 @@
   `scoop install hap/huntandpeck`; `scoop update huntandpeck` picks up new releases. The release workflow updates
   `bucket/huntandpeck.json` (version, URL, SHA-256) after each `v*` tag is published.
 
+### Options
+- New default hint letters `ASDFGHJKLQWERUIO` (QWERTY home row, then the top-row keys next to it) and a preset list next to the
+  Letters box: QWERTY home + top row, QWERTY home row only, Vimium classic (the old default `SADFJKLEWCMPGH`), Colemak,
+  Dvorak and Custom. Letters you saved before are kept.
+
 ## 1.10.1 (2026-10-23)
 
 No changes to the app itself.

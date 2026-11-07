@@ -23,7 +23,7 @@ namespace HuntAndPeck.Views
 
         private void ScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
-            if (FontSizeBox.IsDropDownOpen || HintStyleBox.IsDropDownOpen)
+            if (FontSizeBox.IsDropDownOpen || HintStyleBox.IsDropDownOpen || AlphabetPresetBox.IsDropDownOpen)
             {
                 // The wheel belongs to the open list
                 return;
