@@ -287,6 +287,20 @@ namespace HuntAndPeck.Tests.ViewModels
         }
 
         [Fact]
+        public void Match_ForcedHover_PassesTheLabelSize_SoTheCursorLandsOnTheLabel()
+        {
+            var original = new FallbackFakeHint("original", new ClickFakeHint());
+            var vm = CreateViewModel(original, new EventRecorder(), hint => Task.FromResult(true));
+            vm.ForcedAction = MouseAction.Hover;
+            var chosen = vm.Hints[0];
+
+            vm.MatchString = chosen.Label;
+
+            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            Assert.Equal(new[] { ActionPoint.EstimateLabelSize(chosen.Label, chosen.FontSize) }, original.RequestedLabelSizes);
+        }
+
+        [Fact]
         public void Match_ForcedHoverFailed_IsNotHoveredAndDoesNotClick()
         {
             var original = new FallbackFakeHint("original", new ClickFakeHint());
@@ -474,7 +488,15 @@ namespace HuntAndPeck.Tests.ViewModels
                 return _clickHint;
             }
 
+            public override Hint CreateClickHint(MouseAction action, Size labelSize)
+            {
+                RequestedLabelSizes.Add(labelSize);
+                return CreateClickHint(action);
+            }
+
             public List<MouseAction> RequestedActions { get; } = new List<MouseAction>();
+
+            public List<Size> RequestedLabelSizes { get; } = new List<Size>();
 
             public override bool ClicksOnFailure => _clicksOnFailure;
 
