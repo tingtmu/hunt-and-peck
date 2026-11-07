@@ -6,7 +6,7 @@ using UIAutomationClient;
 namespace HuntAndPeck.Models
 {
     /// <summary>
-    /// A hint acting on a UI Automation element; by default it can be clicked instead (see <see cref="Hint.CreateClickHint"/>)
+    /// A hint acting on a UI Automation element; by default it can be clicked instead (see <see cref="Hint.CreateClickHint(MouseAction)"/>)
     /// </summary>
     internal abstract class UiAutomationHint : Hint
     {
@@ -18,6 +18,8 @@ namespace HuntAndPeck.Models
 
         protected IUIAutomationElement AutomationElement { get; }
 
-        public override Hint CreateClickHint(MouseAction action) => new UiAutomationClickHint(OwningWindow, AutomationElement, BoundingRectangle, action);
+        public override Hint CreateClickHint(MouseAction action) => CreateClickHint(action, Size.Empty);
+
+        public override Hint CreateClickHint(MouseAction action, Size labelSize) => new UiAutomationClickHint(OwningWindow, AutomationElement, BoundingRectangle, action, labelSize);
     }
 }

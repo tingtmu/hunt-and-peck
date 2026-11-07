@@ -127,7 +127,7 @@ namespace HuntAndPeck.ViewModels
 
                 if (matching.Count == 1)
                 {
-                    InvokeAndClose(matching[0].Hint);
+                    InvokeAndClose(matching[0]);
                 }
             }
         }
@@ -184,8 +184,9 @@ namespace HuntAndPeck.ViewModels
         /// click may fix (<see cref="Hint.ClicksOnFailure"/>) within <see cref="ClickFallbackDeadline"/>, clicks
         /// the element instead, with the overlay closed. <see cref="ForcedAction"/> clicks straight away.
         /// </summary>
-        private async void InvokeAndClose(Hint hint)
+        private async void InvokeAndClose(HintViewModel chosen)
         {
+            var hint = chosen.Hint;
             if (_invoked)
             {
                 // Further typing after the match must not invoke again
@@ -195,7 +196,8 @@ namespace HuntAndPeck.ViewModels
 
             if (ForcedAction.HasValue)
             {
-                var forced = hint.CreateClickHint(ForcedAction.Value);
+                // A hover lands on the label, where the user saw the hint
+                var forced = hint.CreateClickHint(ForcedAction.Value, ActionPoint.EstimateLabelSize(chosen.Label, chosen.FontSize));
                 Hovering = forced != null && ForcedAction == MouseAction.Hover;
                 hint = forced ?? hint;
             }

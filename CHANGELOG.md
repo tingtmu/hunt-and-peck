@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Mouse actions
+- **Alt + last letter** moves the mouse onto the hint's label, where you saw it, instead of the element's centre
+  (which, on a wide list row or text box, could be far from the label). Clicks still land on the centre.
+
 ## 1.10.1 (2026-10-23)
 
 No changes to the app itself.
