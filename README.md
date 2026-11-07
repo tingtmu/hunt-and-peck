@@ -1,16 +1,16 @@
-# HuntAndPeck 1.11
+# HuntAndPeck 1.12
 
 Simple vimium/vimperator style navigation for Windows applications based on the UI Automation framework. In essence, it works the same as screen readers or accessibility programs but with the goal of making any Windows program faster to use.
 
 It works for any Windows program that exposes UI Automation (Win32, WinForms, WPF, WinUI, browsers).
 
-This is the 1.11 build (a fork of zsims/hunt-and-peck by Zachary Sims): https://github.com/tingtmu/hunt-and-peck
+This is the 1.12 build (a fork of zsims/hunt-and-peck by Zachary Sims): https://github.com/tingtmu/hunt-and-peck
 
 # Download
 
 https://github.com/tingtmu/hunt-and-peck/releases/latest
 
-Download `HuntAndPeck-1.11.0.zip` (portable, no installer), unzip it anywhere and run `hap.exe`. To update an
+Download `HuntAndPeck-1.12.0.zip` (portable, no installer), unzip it anywhere and run `hap.exe`. To update an
 existing install, unzip over the old folder. `SHA256SUMS.txt` is there to verify the download.
 
 ## Install with Scoop

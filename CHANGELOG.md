@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.12.0 (2026-11-07)
 
 ### Overlay
 - **Repeat mode:** press Space while the `Alt + ;` hints are shown. After each action the window in front is scanned
