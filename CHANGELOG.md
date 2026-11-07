@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Updates
+- **Update check:** about 30 seconds after start (at most once a day, if "Check for updates automatically" in
+  Options is on, as it is by default) HuntAndPeck looks for a newer release on GitHub and shows a notification;
+  clicking it opens the release page. A Scoop install is told to run `scoop update huntandpeck` instead.
+  The new tray menu item `Check for updates` checks at once and always reports the result. Nothing is
+  downloaded or replaced.
+
 ## 1.10.1 (2026-10-23)
 
 No changes to the app itself.

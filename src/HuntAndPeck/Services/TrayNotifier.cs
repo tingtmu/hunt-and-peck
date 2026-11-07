@@ -16,6 +16,9 @@ namespace HuntAndPeck.Services
         private readonly Dispatcher _dispatcher;
         private TaskbarIcon _icon;
 
+        /// <summary>What a click on the balloon shown last does; null if nothing (UI thread only)</summary>
+        private Action _onClick;
+
         public TrayNotifier(Dispatcher dispatcher)
         {
             _dispatcher = dispatcher;
@@ -24,6 +27,7 @@ namespace HuntAndPeck.Services
         public void Attach(TaskbarIcon icon)
         {
             _icon = icon;
+            icon.TrayBalloonTipClicked += (sender, e) => RunClickAction();
         }
 
         /// <summary>
@@ -35,10 +39,38 @@ namespace HuntAndPeck.Services
             {
                 return;
             }
-            _dispatcher.BeginInvoke(new Action(() => ShowOnUiThread(message)), DispatcherPriority.Background);
+            _dispatcher.BeginInvoke(new Action(() => ShowOnUiThread(message, BalloonIcon.Warning, null)), DispatcherPriority.Background);
         }
 
-        private void ShowOnUiThread(string message)
+        /// <summary>
+        /// Shows an information balloon. Safe to call from any thread.
+        /// </summary>
+        /// <param name="message">The text</param>
+        /// <param name="onClick">Run on the UI thread if the user clicks the balloon; null for nothing</param>
+        public void ShowInfo(string message, Action onClick)
+        {
+            if (_dispatcher.HasShutdownStarted)
+            {
+                return;
+            }
+            _dispatcher.BeginInvoke(new Action(() => ShowOnUiThread(message, BalloonIcon.Info, onClick)), DispatcherPriority.Background);
+        }
+
+        private void RunClickAction()
+        {
+            var action = _onClick;
+            _onClick = null;
+            try
+            {
+                action?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceWarning("Tray notification click failed: {0}", ex);
+            }
+        }
+
+        private void ShowOnUiThread(string message, BalloonIcon symbol, Action onClick)
         {
             var icon = _icon;
             if (icon == null || icon.IsDisposed)
@@ -49,7 +81,9 @@ namespace HuntAndPeck.Services
 
             try
             {
-                icon.ShowBalloonTip(Title, message, BalloonIcon.Warning);
+                // A click belongs to the balloon shown last, so a newer one replaces (or clears) the action
+                _onClick = onClick;
+                icon.ShowBalloonTip(Title, message, symbol);
             }
             catch (Exception ex)
             {

@@ -24,6 +24,7 @@ namespace HuntAndPeck.ViewModels
         private HintStyle _hintStyle;
         private string _hintAlphabetText;
         private string _hintAlphabetError;
+        private bool _checkForUpdates;
         private string _saveError;
 
         /// <summary>True while a hotkey box has keyboard focus (global hotkeys suspended)</summary>
@@ -45,6 +46,7 @@ namespace HuntAndPeck.ViewModels
             _fontSizeText = FontSizeSetting.Format(_original.FontSize);
             _hintStyle = _original.HintStyle;
             _hintAlphabetText = _original.HintAlphabet;
+            _checkForUpdates = _original.CheckForUpdates;
             MainHotKey = new HotKeyEditorViewModel(_original.MainHotKey, UserSettingsSnapshot.Defaults.MainHotKey);
             TaskbarHotKey = new HotKeyEditorViewModel(_original.TaskbarHotKey, UserSettingsSnapshot.Defaults.TaskbarHotKey);
             SaveCommand = new DelegateCommand(() => Save());
@@ -116,6 +118,13 @@ namespace HuntAndPeck.ViewModels
 
         public string HintAlphabetHelp =>
             string.Format("{0}-{1} different letters A-Z. Default: {2}", HintAlphabet.MinLength, HintAlphabet.MaxLength, HintAlphabet.Default);
+
+        /// <summary>Whether to look for a newer release automatically at start-up</summary>
+        public bool CheckForUpdates
+        {
+            get { return _checkForUpdates; }
+            set { _checkForUpdates = value; NotifyOfPropertyChange(); }
+        }
 
         /// <summary>Why saving failed (other than a field error), else null</summary>
         public string SaveError
@@ -216,7 +225,7 @@ namespace HuntAndPeck.ViewModels
             {
                 return null;
             }
-            return new UserSettingsSnapshot(fontSize, alphabet, MainHotKey.Combination, TaskbarHotKey.Combination, HintStyle);
+            return new UserSettingsSnapshot(fontSize, alphabet, MainHotKey.Combination, TaskbarHotKey.Combination, HintStyle, CheckForUpdates);
         }
 
         /// <returns>

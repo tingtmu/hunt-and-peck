@@ -22,5 +22,11 @@
     <Setting Name="HintStyle" Type="System.String" Scope="User">
       <Value Profile="(Default)">Classic</Value>
     </Setting>
+    <Setting Name="CheckForUpdates" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="LastUpdateCheckUtc" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
   </Settings>
 </SettingsFile>
