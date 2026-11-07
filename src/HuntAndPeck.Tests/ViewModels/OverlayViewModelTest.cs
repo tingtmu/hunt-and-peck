@@ -287,7 +287,7 @@ namespace HuntAndPeck.Tests.ViewModels
         }
 
         [Fact]
-        public void Match_ForcedHover_PassesTheLabelSize_SoTheCursorLandsOnTheLabel()
+        public void Match_ForcedHover_PassesTheChosenLabelsRect_SoTheCursorLandsOnTheLabel()
         {
             var original = new FallbackFakeHint("original", new ClickFakeHint());
             var vm = CreateViewModel(original, new EventRecorder(), hint => Task.FromResult(true));
@@ -297,7 +297,8 @@ namespace HuntAndPeck.Tests.ViewModels
             vm.MatchString = chosen.Label;
 
             Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
-            Assert.Equal(new[] { ActionPoint.EstimateLabelSize(chosen.Label, chosen.FontSize) }, original.RequestedLabelSizes);
+            Assert.False(chosen.LabelRect.IsEmpty);
+            Assert.Equal(new[] { chosen.LabelRect }, original.RequestedLabels);
         }
 
         [Fact]
@@ -409,6 +410,83 @@ namespace HuntAndPeck.Tests.ViewModels
             Assert.Equal(labels, vm.Hints.Select(x => x.Label));
         }
 
+        [Fact]
+        public void ToggleRepeat_WhenItCan_TurnsRepeatOnAndOffAndNotifies()
+        {
+            var vm = CreateRepeatViewModel(canRepeat: true);
+            var changed = new List<string>();
+            vm.PropertyChanged += (s, e) => changed.Add(e.PropertyName);
+
+            Assert.False(vm.Repeat);
+            Assert.True(vm.ToggleRepeat());
+            Assert.True(vm.Repeat);
+            Assert.True(vm.ToggleRepeat());
+            Assert.False(vm.Repeat);
+
+            Assert.Equal(new[] { "Repeat", "Repeat" }, changed);
+        }
+
+        [Fact]
+        public void ToggleRepeat_WhenItCannot_ReturnsFalseAndChangesNothing()
+        {
+            var vm = CreateRepeatViewModel(canRepeat: false);
+            var changed = new List<string>();
+            vm.PropertyChanged += (s, e) => changed.Add(e.PropertyName);
+
+            Assert.False(vm.ToggleRepeat());
+
+            Assert.False(vm.Repeat);
+            Assert.Empty(changed);
+        }
+
+        [Fact]
+        public void RepeatStartsOn_OnlyForAnOverlayThatCanRepeat()
+        {
+            Assert.True(CreateRepeatViewModel(canRepeat: true, repeat: true).Repeat);
+            Assert.False(CreateRepeatViewModel(canRepeat: false, repeat: true).Repeat);
+        }
+
+        [Fact]
+        public void Labels_OfHintsWithTheSameTopLeft_GetDifferentRects()
+        {
+            var small = new PlacedFakeHint(100, 100);
+            var big = new SizedFakeHint(new Rect(100, 100, 400, 60));
+            var session = new HintSession { Hints = new List<Hint> { small, big }, OwningWindowBounds = new Rect(0, 0, 1000, 800) };
+
+            var vm = new OverlayViewModel(session, new HintLabelService(), hint => Task.FromResult(true));
+
+            var smallRect = vm.Hints.Single(x => x.Hint == small).LabelRect;
+            var bigRect = vm.Hints.Single(x => x.Hint == big).LabelRect;
+            Assert.Equal(0, smallRect.X);
+            Assert.Equal(0, smallRect.Y);
+            Assert.NotEqual(smallRect, bigRect);
+            // Beside or below the small label (up to floating point noise from the absolute-to-relative conversion)
+            Assert.True(bigRect.X >= smallRect.Right - 1e-9 || bigRect.Y >= smallRect.Bottom - 1e-9);
+        }
+
+        [Fact]
+        public void LabelLeftAndTop_AreTheLabelsPositionInOverlayCoordinates()
+        {
+            var small = new PlacedFakeHint(100, 100);
+            var big = new SizedFakeHint(new Rect(100, 100, 400, 60));
+            var session = new HintSession { Hints = new List<Hint> { small, big }, OwningWindowBounds = new Rect(0, 0, 1000, 800) };
+
+            var vm = new OverlayViewModel(session, new HintLabelService(), hint => Task.FromResult(true));
+
+            var smallVm = vm.Hints.Single(x => x.Hint == small);
+            var bigVm = vm.Hints.Single(x => x.Hint == big);
+            Assert.Equal(100, smallVm.LabelLeft);
+            Assert.Equal(100, smallVm.LabelTop);
+            Assert.Equal(100 + bigVm.LabelRect.X, bigVm.LabelLeft);
+            Assert.Equal(100 + bigVm.LabelRect.Y, bigVm.LabelTop);
+        }
+
+        private static OverlayViewModel CreateRepeatViewModel(bool canRepeat, bool repeat = false)
+        {
+            var session = new HintSession { Hints = new List<Hint> { new FakeHint() } };
+            return new OverlayViewModel(session, new HintLabelService(), hint => Task.FromResult(true), canRepeat: canRepeat, repeat: repeat);
+        }
+
         private static OverlayViewModel CreateViewModelWithHints(int count)
         {
             var hints = Enumerable.Range(0, count).Select(i => (Hint)new PlacedFakeHint(i * 20, 0)).ToList();
@@ -488,15 +566,15 @@ namespace HuntAndPeck.Tests.ViewModels
                 return _clickHint;
             }
 
-            public override Hint CreateClickHint(MouseAction action, Size labelSize)
+            public override Hint CreateClickHint(MouseAction action, Rect label)
             {
-                RequestedLabelSizes.Add(labelSize);
+                RequestedLabels.Add(label);
                 return CreateClickHint(action);
             }
 
             public List<MouseAction> RequestedActions { get; } = new List<MouseAction>();
 
-            public List<Size> RequestedLabelSizes { get; } = new List<Size>();
+            public List<Rect> RequestedLabels { get; } = new List<Rect>();
 
             public override bool ClicksOnFailure => _clicksOnFailure;
 
@@ -540,6 +618,18 @@ namespace HuntAndPeck.Tests.ViewModels
         {
             public FakeHint()
                 : base(IntPtr.Zero, new Rect(0, 0, 10, 10))
+            {
+            }
+
+            public override void Invoke()
+            {
+            }
+        }
+
+        private sealed class SizedFakeHint : Hint
+        {
+            public SizedFakeHint(Rect bounds)
+                : base(IntPtr.Zero, bounds)
             {
             }
 

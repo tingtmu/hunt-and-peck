@@ -18,8 +18,8 @@ namespace HuntAndPeck.Models
 
         protected IUIAutomationElement AutomationElement { get; }
 
-        public override Hint CreateClickHint(MouseAction action) => CreateClickHint(action, Size.Empty);
+        public override Hint CreateClickHint(MouseAction action) => CreateClickHint(action, Rect.Empty);
 
-        public override Hint CreateClickHint(MouseAction action, Size labelSize) => new UiAutomationClickHint(OwningWindow, AutomationElement, BoundingRectangle, action, labelSize);
+        public override Hint CreateClickHint(MouseAction action, Rect label) => new UiAutomationClickHint(OwningWindow, AutomationElement, BoundingRectangle, action, label);
     }
 }

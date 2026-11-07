@@ -1,4 +1,5 @@
-﻿using HuntAndPeck.Models;
+﻿using System.Windows;
+using HuntAndPeck.Models;
 
 namespace HuntAndPeck.ViewModels
 {
@@ -41,5 +42,17 @@ namespace HuntAndPeck.ViewModels
 
         /// <summary>Label font size</summary>
         public double FontSize { get; }
+
+        /// <summary>
+        /// Where the label is drawn, relative to the element's top left corner (<see cref="Services.LabelLayout"/>);
+        /// empty until laid out, which draws it at the corner. Set once, before the overlay is shown.
+        /// </summary>
+        public Rect LabelRect { get; set; } = Rect.Empty;
+
+        /// <summary>The label's left edge in overlay coordinates</summary>
+        public double LabelLeft => Hint.BoundingRectangle.Left + (LabelRect.IsEmpty ? 0 : LabelRect.X);
+
+        /// <summary>The label's top edge in overlay coordinates</summary>
+        public double LabelTop => Hint.BoundingRectangle.Top + (LabelRect.IsEmpty ? 0 : LabelRect.Y);
     }
 }

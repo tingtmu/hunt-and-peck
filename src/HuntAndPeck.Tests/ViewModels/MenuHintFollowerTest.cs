@@ -23,8 +23,9 @@ namespace HuntAndPeck.Tests.ViewModels
             var setup = new Setup();
             setup.MenuAppearsAfterInvoke();
 
-            setup.Follower.FollowAsync(setup.Session, setup.InvokedOverlay(), setup.Before, CancellationToken.None).Wait();
+            var followed = setup.Follower.FollowAsync(setup.Session, setup.InvokedOverlay(), setup.Before, CancellationToken.None).Result;
 
+            Assert.True(followed);
             var shown = Assert.Single(setup.Shown);
             Assert.Equal(new[] { Menu }, shown);
             Assert.Equal(new[] { "begin", "end" }, setup.SessionEvents);
@@ -37,8 +38,9 @@ namespace HuntAndPeck.Tests.ViewModels
             setup.MenuAppearsAfterInvoke();
             var overlay = new OverlayViewModel(setup.Session, new HintLabelService(), hint => Task.FromResult(true));
 
-            setup.Follower.FollowAsync(setup.Session, overlay, setup.Before, CancellationToken.None).Wait();
+            var followed = setup.Follower.FollowAsync(setup.Session, overlay, setup.Before, CancellationToken.None).Result;
 
+            Assert.False(followed);
             Assert.Empty(setup.Provider.Enumerated);
             Assert.Empty(setup.Shown);
         }
@@ -48,8 +50,9 @@ namespace HuntAndPeck.Tests.ViewModels
         {
             var setup = new Setup();
 
-            setup.Follower.FollowAsync(setup.Session, setup.InvokedOverlay(), setup.Before, CancellationToken.None).Wait();
+            var followed = setup.Follower.FollowAsync(setup.Session, setup.InvokedOverlay(), setup.Before, CancellationToken.None).Result;
 
+            Assert.False(followed);
             Assert.Empty(setup.Provider.Enumerated);
             Assert.Empty(setup.Shown);
         }
@@ -62,8 +65,9 @@ namespace HuntAndPeck.Tests.ViewModels
             var following = new CancellationTokenSource();
             following.Cancel();
 
-            setup.Follower.FollowAsync(setup.Session, setup.InvokedOverlay(), setup.Before, following.Token).Wait();
+            var followed = setup.Follower.FollowAsync(setup.Session, setup.InvokedOverlay(), setup.Before, following.Token).Result;
 
+            Assert.False(followed);
             Assert.Empty(setup.Shown);
         }
 
@@ -73,8 +77,9 @@ namespace HuntAndPeck.Tests.ViewModels
             var setup = new Setup { SessionFree = false };
             setup.MenuAppearsAfterInvoke();
 
-            setup.Follower.FollowAsync(setup.Session, setup.InvokedOverlay(), setup.Before, CancellationToken.None).Wait();
+            var followed = setup.Follower.FollowAsync(setup.Session, setup.InvokedOverlay(), setup.Before, CancellationToken.None).Result;
 
+            Assert.False(followed);
             Assert.Empty(setup.Shown);
             Assert.Empty(setup.SessionEvents);
         }

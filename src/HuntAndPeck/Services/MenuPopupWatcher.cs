@@ -101,8 +101,9 @@ namespace HuntAndPeck.Services
 
         /// <param name="owner">A window of the app the action was done in</param>
         /// <param name="before">The <see cref="Snapshot"/> taken before the action</param>
+        /// <param name="appearTimeout">How long a menu may take to appear; <see cref="AppearTimeout"/> if null</param>
         /// <returns>The new popup windows of the app, else an empty list if none appeared in time</returns>
-        public async Task<List<IntPtr>> WaitForNewAsync(IntPtr owner, ISet<IntPtr> before)
+        public async Task<List<IntPtr>> WaitForNewAsync(IntPtr owner, ISet<IntPtr> before, TimeSpan? appearTimeout = null)
         {
             var processId = _windows.ProcessOf(owner);
             if (processId == 0)
@@ -110,7 +111,7 @@ namespace HuntAndPeck.Services
                 return new List<IntPtr>();
             }
 
-            var appeared = await PollingWait.UntilAsync(() => NewPopups(processId, before).Count > 0, PollInterval, AppearTimeout, _delay, _now);
+            var appeared = await PollingWait.UntilAsync(() => NewPopups(processId, before).Count > 0, PollInterval, appearTimeout ?? AppearTimeout, _delay, _now);
             if (!appeared)
             {
                 return new List<IntPtr>();

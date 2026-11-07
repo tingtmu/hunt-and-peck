@@ -15,18 +15,21 @@ namespace HuntAndPeck.Models
     /// </summary>
     internal class UiAutomationClickHint : UiAutomationHint
     {
-        /// <param name="labelSize">About the size of the element's hint label (physical pixels), else empty</param>
-        public UiAutomationClickHint(IntPtr owningWindow, IUIAutomationElement automationElement, Rect boundingRectangle, MouseAction action = MouseAction.LeftClick, Size labelSize = default(Size))
+        /// <param name="label">
+        /// About where the overlay drew the element's hint label (physical pixels, relative to the element's top
+        /// left corner), else empty
+        /// </param>
+        public UiAutomationClickHint(IntPtr owningWindow, IUIAutomationElement automationElement, Rect boundingRectangle, MouseAction action = MouseAction.LeftClick, Rect? label = null)
             : base(owningWindow, automationElement, boundingRectangle)
         {
             Action = action;
-            LabelSize = labelSize;
+            Label = label ?? Rect.Empty;
         }
 
         public MouseAction Action { get; }
 
-        /// <summary>About the size of the element's hint label, where a hover lands; empty if unknown (the centre)</summary>
-        public Size LabelSize { get; }
+        /// <summary>About where the element's hint label was drawn, where a hover lands; empty if unknown (the centre)</summary>
+        public Rect Label { get; }
 
         /// <summary>The overlay covers the button, so it must be gone before the click</summary>
         public override bool InvokeAfterOverlayCloses => true;
@@ -35,7 +38,7 @@ namespace HuntAndPeck.Models
         public override Hint CreateClickHint(MouseAction action) => action == Action ? null : base.CreateClickHint(action);
 
         /// <summary>Null if this hint already clicks that way</summary>
-        public override Hint CreateClickHint(MouseAction action, Size labelSize) => action == Action ? null : base.CreateClickHint(action, labelSize);
+        public override Hint CreateClickHint(MouseAction action, Rect label) => action == Action ? null : base.CreateClickHint(action, label);
 
         /// <exception cref="InvalidOperationException">
         /// The element has no visible bounds in its window, or another window covers the click point
@@ -63,7 +66,7 @@ namespace HuntAndPeck.Models
             }
 
             var target = Action == MouseAction.Hover
-                ? ActionPoint.LabelCentre(left, top, right, bottom, LabelSize)
+                ? ActionPoint.LabelCentre(left, top, right, bottom, Label)
                 : ActionPoint.Centre(left, top, right, bottom);
             var point = new POINT((int)target.X, (int)target.Y);
             var hit = WindowEnumeration.WindowFromPoint(point);

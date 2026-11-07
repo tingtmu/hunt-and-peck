@@ -83,6 +83,12 @@ Where things live:
       | `Ctrl` | right-click (context menu) |
       | `Ctrl + Shift` | double-click (e.g. open a file) |
       | `Alt` | hover: the mouse moves onto the hint's label and stays (tooltips, hover menus). Afterwards the arrow keys, `PgUp` and `PgDn` scroll the pane under the mouse, whichever window has focus, until `Esc`, any other key or a mouse move |
+    - Repeat: press `Space` while the `Alt + ;` hints are shown (a `⟳ Repeat` pill appears; `Space` again turns it
+      off). After each action HuntAndPeck scans the window in front again and shows new hints, so you can tick
+      several check boxes or step through a wizard without the hotkey. `Esc` ends it, as do a hotkey, an `Alt`
+      hover, an action that opens a menu (its hints are shown as usual) and a window with nothing to click.
+    - Labels that would cover each other (e.g. a check box in a list row) are moved apart: along their element,
+      else just left of or above it.
     - Menus: when a hint opens a menu or dropdown (a right-click menu, a submenu), its hints appear on their
       own and the menu stays open. Letters pick an item, `Esc` hides the hints, and any other key (arrows,
       `Enter`) goes to the menu as usual.

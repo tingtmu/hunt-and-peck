@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Overlay
+- **Repeat mode:** press Space while the `Alt + ;` hints are shown. After each action the window in front is scanned
+  again and new hints appear, until Esc (or a hotkey, an Alt hover, an action that opens a menu, or nothing left to
+  click). A "⟳ Repeat" pill shows while it is on. Options lists Space under Overlay keys.
+- Labels that would cover each other are moved apart: along their element, else just left of or above it. Without
+  a collision labels stay at the element's top left corner as before. An Alt hover lands on the label where it was drawn.
+
 ## 1.11.0 (2026-11-07)
 
 ### Mouse actions

@@ -63,23 +63,30 @@ namespace HuntAndPeck.ViewModels
         /// <param name="overlay">Its view model</param>
         /// <param name="before">The <see cref="Snapshot"/> taken before that overlay was shown</param>
         /// <param name="following">Cancelled when the user moves on (presses the hotkey)</param>
-        public async Task FollowAsync(HintSession session, OverlayViewModel overlay, HashSet<IntPtr> before, CancellationToken following)
+        /// <param name="firstAppearTimeout">
+        /// How long the first menu may take to appear (<see cref="MenuPopupWatcher.AppearTimeout"/> if null);
+        /// repeat mode waits less after an action that rarely opens a menu
+        /// </param>
+        /// <returns>True if a menu overlay was shown</returns>
+        public async Task<bool> FollowAsync(HintSession session, OverlayViewModel overlay, HashSet<IntPtr> before, CancellationToken following, TimeSpan? firstAppearTimeout = null)
         {
+            var shown = false;
             for (var depth = 0; depth < MaxDepth && overlay.HintInvoked && !following.IsCancellationRequested; depth++)
             {
                 await Task.WhenAny(overlay.PendingInvocation, _delay(InvocationWait));
 
-                var menus = await _popups.WaitForNewAsync(session.OwningWindow, before);
+                var menus = await _popups.WaitForNewAsync(session.OwningWindow, before, depth == 0 ? firstAppearTimeout : null);
                 if (menus.Count == 0 || following.IsCancellationRequested)
                 {
-                    return;
+                    return shown;
                 }
 
                 var menuSession = await _hintProvider.EnumPopupHintsAsync(menus);
                 if (!HintSession.IsShowable(menuSession) || !_tryBeginSession(following))
                 {
-                    return;
+                    return shown;
                 }
+                shown = true;
 
                 Trace.TraceInformation("Menu: {0} hints in {1} popup windows", menuSession.Hints.Count, menus.Count);
                 try
@@ -94,6 +101,7 @@ namespace HuntAndPeck.ViewModels
                     _endSession();
                 }
             }
+            return shown;
         }
     }
 }

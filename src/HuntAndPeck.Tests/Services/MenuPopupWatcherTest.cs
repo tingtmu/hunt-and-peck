@@ -54,6 +54,19 @@ namespace HuntAndPeck.Tests.Services
         }
 
         [Fact]
+        public void ShorterAppearTimeout_GivesUpSooner()
+        {
+            // Repeat mode after an action that rarely opens a menu
+            var clock = new FakeClock();
+            var watcher = new MenuPopupWatcher(new FakeWindows(), clock.Delay, () => clock.Now);
+
+            var menus = watcher.WaitForNewAsync(Owner, watcher.Snapshot(), TimeSpan.FromMilliseconds(100)).Result;
+
+            Assert.Empty(menus);
+            Assert.InRange(clock.Now, TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100) + MenuPopupWatcher.PollInterval);
+        }
+
+        [Fact]
         public void AnyVisible_IsFalseOnceTheMenuCloses()
         {
             var windows = new FakeWindows();

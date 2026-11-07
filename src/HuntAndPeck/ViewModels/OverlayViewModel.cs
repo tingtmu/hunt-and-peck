@@ -34,15 +34,21 @@ namespace HuntAndPeck.ViewModels
         /// </param>
         /// <param name="fontSize">Label font size</param>
         /// <param name="hintStyle">Label colours</param>
+        /// <param name="canRepeat">True if Space may turn on <see cref="Repeat"/> (the window hotkey's overlay)</param>
+        /// <param name="repeat">Initial <see cref="Repeat"/>: true for an overlay shown by repeat mode</param>
         public OverlayViewModel(
             HintSession session,
             IHintLabelService hintLabelService,
             Func<Hint, Task<bool>> invokeHint,
             double fontSize = FontSizeSetting.Default,
-            HintStyle hintStyle = HintStyleSetting.Default)
+            HintStyle hintStyle = HintStyleSetting.Default,
+            bool canRepeat = false,
+            bool repeat = false)
         {
             _invokeHint = invokeHint;
             HintStyle = hintStyle;
+            CanRepeat = canRepeat;
+            _repeat = canRepeat && repeat;
             _bounds = session.OwningWindowBounds;
             OverlayOwner = session.OverlayOwner;
 
@@ -57,6 +63,59 @@ namespace HuntAndPeck.ViewModels
                     Active = true
                 });
             }
+            LayOutLabels();
+        }
+
+        /// <summary>Moves labels that would cover each other apart (<see cref="LabelLayout"/>)</summary>
+        private void LayOutLabels()
+        {
+            var stopwatch = Stopwatch.StartNew();
+            var elements = _hints.Select(x => x.Hint.BoundingRectangle).ToList();
+            var sizes = _hints.Select(x => ActionPoint.EstimateLabelSize(x.Label, x.FontSize)).ToList();
+            var area = new Rect(0, 0, Math.Max(_bounds.Width, 0), Math.Max(_bounds.Height, 0));
+            var placed = LabelLayout.Place(elements, sizes, _bounds.IsEmpty ? Rect.Empty : area);
+            var moved = 0;
+            for (var i = 0; i < _hints.Count; i++)
+            {
+                _hints[i].LabelRect = placed[i];
+                if (!placed[i].IsEmpty && (placed[i].X != 0 || placed[i].Y != 0))
+                {
+                    moved++;
+                }
+            }
+            Trace.TraceInformation("Labels laid out in {0} ms; {1} of {2} moved off another label", stopwatch.ElapsedMilliseconds, moved, _hints.Count);
+        }
+
+        private bool _repeat;
+
+        /// <summary>True if Space may toggle <see cref="Repeat"/></summary>
+        public bool CanRepeat { get; }
+
+        /// <summary>
+        /// Repeat mode: after the chosen action, the window is scanned again and new hints are shown, until Esc.
+        /// Toggled with Space (<see cref="ToggleRepeat"/>); acted on by the shell once this overlay closes.
+        /// </summary>
+        public bool Repeat
+        {
+            get { return _repeat; }
+            private set
+            {
+                _repeat = value;
+                NotifyOfPropertyChange();
+            }
+        }
+
+        /// <summary>Turns <see cref="Repeat"/> on or off</summary>
+        /// <returns>False if this overlay can't repeat (the view then shakes the box)</returns>
+        public bool ToggleRepeat()
+        {
+            if (!CanRepeat)
+            {
+                return false;
+            }
+            Repeat = !Repeat;
+            Trace.TraceInformation("Repeat mode {0}", Repeat ? "on" : "off");
+            return true;
         }
 
         /// <summary>
@@ -176,6 +235,12 @@ namespace HuntAndPeck.ViewModels
         /// </summary>
         public bool Hovering { get; private set; }
 
+        /// <summary>
+        /// The <see cref="ForcedAction"/> the hint was chosen with (null: its UI Automation action); unlike
+        /// <see cref="ForcedAction"/>, unchanged by keys pressed after the choice
+        /// </summary>
+        public MouseAction? ChosenAction { get; private set; }
+
         /// <summary>True once a forced <see cref="MouseAction.Hover"/> moved the cursor onto the chosen element</summary>
         public bool Hovered { get; private set; }
 
@@ -193,11 +258,12 @@ namespace HuntAndPeck.ViewModels
                 return;
             }
             _invoked = true;
+            ChosenAction = ForcedAction;
 
             if (ForcedAction.HasValue)
             {
                 // A hover lands on the label, where the user saw the hint
-                var forced = hint.CreateClickHint(ForcedAction.Value, ActionPoint.EstimateLabelSize(chosen.Label, chosen.FontSize));
+                var forced = hint.CreateClickHint(ForcedAction.Value, chosen.LabelRect);
                 Hovering = forced != null && ForcedAction == MouseAction.Hover;
                 hint = forced ?? hint;
             }

@@ -34,20 +34,47 @@ namespace HuntAndPeck.Services
         }
 
         /// <summary>
-        /// The centre of the hint label, which the overlay draws at the element's top left corner, shrunk to fit
-        /// the element if it is smaller (uniformly, as the overlay's Viewbox does); where a hover lands, so the
-        /// cursor ends up where the hint was shown
+        /// The label's size as the overlay draws it on an element: shrunk uniformly to fit an element smaller than
+        /// the label (as the overlay's Viewbox does), else unchanged
         /// </summary>
-        public static Point LabelCentre(int left, int top, int right, int bottom, Size labelSize)
+        public static Size FitLabel(Size element, Size label)
         {
-            var width = Math.Max(right - left, 0);
-            var height = Math.Max(bottom - top, 0);
-            if (labelSize.IsEmpty || labelSize.Width <= 0 || labelSize.Height <= 0)
+            if (!IsKnown(label))
+            {
+                return label;
+            }
+            var width = Math.Max(element.Width, 0);
+            var height = Math.Max(element.Height, 0);
+            var scale = Math.Min(1, Math.Min(width / label.Width, height / label.Height));
+            return new Size(label.Width * scale, label.Height * scale);
+        }
+
+        /// <summary>
+        /// The centre of the hint label, where a hover lands, so the cursor ends up where the hint was shown.
+        /// <paramref name="label"/> is where the overlay drew the (fitted) label, relative to the element's top
+        /// left corner (see <see cref="LabelLayout"/>). A label drawn outside the element still hovers the element:
+        /// the point is kept inside it.
+        /// </summary>
+        /// <param name="label">The label, relative to the element's top left corner; empty if unknown (the centre)</param>
+        public static Point LabelCentre(int left, int top, int right, int bottom, Rect label)
+        {
+            if (label.IsEmpty || !IsKnown(label.Size))
             {
                 return Centre(left, top, right, bottom);
             }
-            var scale = Math.Min(1, Math.Min(width / labelSize.Width, height / labelSize.Height));
-            return new Point(left + (int)(labelSize.Width * scale / 2), top + (int)(labelSize.Height * scale / 2));
+            var x = left + (int)(label.X + label.Width / 2);
+            var y = top + (int)(label.Y + label.Height / 2);
+            return new Point(Clamp(x, left, right - 1), Clamp(y, top, bottom - 1));
+        }
+
+        private static bool IsKnown(Size size)
+        {
+            return !size.IsEmpty && size.Width > 0 && size.Height > 0;
+        }
+
+        private static int Clamp(int value, int min, int max)
+        {
+            return max < min ? min : Math.Max(min, Math.Min(max, value));
         }
     }
 }
