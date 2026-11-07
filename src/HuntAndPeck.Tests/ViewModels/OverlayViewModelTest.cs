@@ -15,7 +15,7 @@ namespace HuntAndPeck.Tests.ViewModels
     public class OverlayViewModelTest
     {
         [Fact]
-        public void Match_InvokesOnce_AndClosesAfterInvocationCompletes()
+        public async Task Match_InvokesOnce_AndClosesAfterInvocationCompletes()
         {
             var invocation = new TaskCompletionSource<bool>();
             var invokes = 0;
@@ -38,11 +38,11 @@ namespace HuntAndPeck.Tests.ViewModels
 
             invocation.SetResult(true);
             Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref closes) == 1, TimeSpan.FromSeconds(5)));
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
         }
 
         [Fact]
-        public void Match_HungInvocation_ClosesAfterDelay()
+        public async Task Match_HungInvocation_ClosesAfterDelay()
         {
             var closes = 0;
             var invocation = new TaskCompletionSource<bool>();
@@ -58,7 +58,7 @@ namespace HuntAndPeck.Tests.ViewModels
             // The real invoker always completes (it times out); the async void InvokeAndClose awaits it after
             // closing, and xUnit waits for outstanding async void operations before ending the test
             invocation.SetResult(true);
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
         }
 
         [Fact]
@@ -93,7 +93,7 @@ namespace HuntAndPeck.Tests.ViewModels
         }
 
         [Fact]
-        public void Match_FailedInvocation_ClicksOnceAfterClose_AndPendingCoversTheClick()
+        public async Task Match_FailedInvocation_ClicksOnceAfterClose_AndPendingCoversTheClick()
         {
             var click = new ClickFakeHint();
             var original = new FallbackFakeHint("original", click);
@@ -115,12 +115,12 @@ namespace HuntAndPeck.Tests.ViewModels
             Assert.False(vm.PendingInvocation.IsCompleted);
 
             clickResult.SetResult(true);
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.Equal(3, recorder.Count);
         }
 
         [Fact]
-        public void Match_SucceededInvocation_DoesNotClick()
+        public async Task Match_SucceededInvocation_DoesNotClick()
         {
             var original = new FallbackFakeHint("original", new ClickFakeHint());
             var recorder = new EventRecorder();
@@ -128,12 +128,12 @@ namespace HuntAndPeck.Tests.ViewModels
 
             vm.MatchString = vm.Hints[0].Label;
 
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.Equal(new List<string> { "invoke:original", "close" }, recorder.Snapshot());
         }
 
         [Fact]
-        public void Match_FailedInvocationAndFailedClick_InvokesTwiceWithoutLooping()
+        public async Task Match_FailedInvocationAndFailedClick_InvokesTwiceWithoutLooping()
         {
             var original = new FallbackFakeHint("original", new ClickFakeHint());
             var recorder = new EventRecorder();
@@ -141,12 +141,12 @@ namespace HuntAndPeck.Tests.ViewModels
 
             vm.MatchString = vm.Hints[0].Label;
 
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.Equal(new List<string> { "invoke:original", "close", "invoke:click" }, recorder.Snapshot());
         }
 
         [Fact]
-        public void Match_FailedInvocationWithoutFallback_InvokesOnce()
+        public async Task Match_FailedInvocationWithoutFallback_InvokesOnce()
         {
             var original = new FallbackFakeHint("original", null);
             var recorder = new EventRecorder();
@@ -154,12 +154,12 @@ namespace HuntAndPeck.Tests.ViewModels
 
             vm.MatchString = vm.Hints[0].Label;
 
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.Equal(new List<string> { "invoke:original", "close" }, recorder.Snapshot());
         }
 
         [Fact]
-        public void Match_ForceClick_InvokesOnlyTheClickAfterClose()
+        public async Task Match_ForceClick_InvokesOnlyTheClickAfterClose()
         {
             var original = new FallbackFakeHint("original", new ClickFakeHint());
             var recorder = new EventRecorder();
@@ -168,12 +168,12 @@ namespace HuntAndPeck.Tests.ViewModels
 
             vm.MatchString = vm.Hints[0].Label;
 
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.Equal(new List<string> { "close", "invoke:click" }, recorder.Snapshot());
         }
 
         [Fact]
-        public void Match_ForceClickWithoutFallback_InvokesTheOriginalHint()
+        public async Task Match_ForceClickWithoutFallback_InvokesTheOriginalHint()
         {
             var original = new FallbackFakeHint("original", null);
             var recorder = new EventRecorder();
@@ -182,12 +182,12 @@ namespace HuntAndPeck.Tests.ViewModels
 
             vm.MatchString = vm.Hints[0].Label;
 
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.Equal(new List<string> { "invoke:original", "close" }, recorder.Snapshot());
         }
 
         [Fact]
-        public void Match_FailedInvocationOfHintThatMustNotClickOnFailure_DoesNotClick()
+        public async Task Match_FailedInvocationOfHintThatMustNotClickOnFailure_DoesNotClick()
         {
             // E.g. a focus hint on a slider: clicking it would change the value
             var original = new FallbackFakeHint("original", new ClickFakeHint(), clicksOnFailure: false);
@@ -196,12 +196,12 @@ namespace HuntAndPeck.Tests.ViewModels
 
             vm.MatchString = vm.Hints[0].Label;
 
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.Equal(new List<string> { "invoke:original", "close" }, recorder.Snapshot());
         }
 
         [Fact]
-        public void Match_ForceClickOnHintThatMustNotClickOnFailure_StillClicks()
+        public async Task Match_ForceClickOnHintThatMustNotClickOnFailure_StillClicks()
         {
             var original = new FallbackFakeHint("original", new ClickFakeHint(), clicksOnFailure: false);
             var recorder = new EventRecorder();
@@ -210,12 +210,12 @@ namespace HuntAndPeck.Tests.ViewModels
 
             vm.MatchString = vm.Hints[0].Label;
 
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.Equal(new List<string> { "close", "invoke:click" }, recorder.Snapshot());
         }
 
         [Fact]
-        public void Match_FailureAfterDeadline_DoesNotClick()
+        public async Task Match_FailureAfterDeadline_DoesNotClick()
         {
             var original = new FallbackFakeHint("original", new ClickFakeHint());
             var recorder = new EventRecorder();
@@ -224,14 +224,14 @@ namespace HuntAndPeck.Tests.ViewModels
 
             vm.MatchString = vm.Hints[0].Label;
 
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.Equal(new List<string> { "invoke:original", "close" }, recorder.Snapshot());
         }
 
         [Theory]
         [InlineData(MouseAction.RightClick)]
         [InlineData(MouseAction.DoubleClick)]
-        public void Match_ForcedAction_ClicksThatWay(MouseAction action)
+        public async Task Match_ForcedAction_ClicksThatWay(MouseAction action)
         {
             var original = new FallbackFakeHint("original", new ClickFakeHint());
             var recorder = new EventRecorder();
@@ -240,20 +240,20 @@ namespace HuntAndPeck.Tests.ViewModels
 
             vm.MatchString = vm.Hints[0].Label;
 
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.Equal(new[] { action }, original.RequestedActions);
             Assert.Equal(new List<string> { "close", "invoke:click" }, recorder.Snapshot());
         }
 
         [Fact]
-        public void FailedInvocation_FallsBackToALeftClick()
+        public async Task FailedInvocation_FallsBackToALeftClick()
         {
             var original = new FallbackFakeHint("original", new ClickFakeHint());
             var vm = CreateViewModel(original, new EventRecorder(), hint => Task.FromResult(false));
 
             vm.MatchString = vm.Hints[0].Label;
 
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.Equal(new[] { MouseAction.LeftClick }, original.RequestedActions);
         }
 
@@ -272,7 +272,7 @@ namespace HuntAndPeck.Tests.ViewModels
         }
 
         [Fact]
-        public void Match_ForcedHoverSucceeded_SetsHovered()
+        public async Task Match_ForcedHoverSucceeded_SetsHovered()
         {
             var original = new FallbackFakeHint("original", new ClickFakeHint());
             var recorder = new EventRecorder();
@@ -281,13 +281,13 @@ namespace HuntAndPeck.Tests.ViewModels
 
             vm.MatchString = vm.Hints[0].Label;
 
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.True(vm.Hovered);
             Assert.Equal(new[] { MouseAction.Hover }, original.RequestedActions);
         }
 
         [Fact]
-        public void Match_ForcedHover_PassesTheChosenLabelsRect_SoTheCursorLandsOnTheLabel()
+        public async Task Match_ForcedHover_PassesTheChosenLabelsRect_SoTheCursorLandsOnTheLabel()
         {
             var original = new FallbackFakeHint("original", new ClickFakeHint());
             var vm = CreateViewModel(original, new EventRecorder(), hint => Task.FromResult(true));
@@ -296,13 +296,13 @@ namespace HuntAndPeck.Tests.ViewModels
 
             vm.MatchString = chosen.Label;
 
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.False(chosen.LabelRect.IsEmpty);
             Assert.Equal(new[] { chosen.LabelRect }, original.RequestedLabels);
         }
 
         [Fact]
-        public void Match_ForcedHoverFailed_IsNotHoveredAndDoesNotClick()
+        public async Task Match_ForcedHoverFailed_IsNotHoveredAndDoesNotClick()
         {
             var original = new FallbackFakeHint("original", new ClickFakeHint());
             var recorder = new EventRecorder();
@@ -311,13 +311,13 @@ namespace HuntAndPeck.Tests.ViewModels
 
             vm.MatchString = vm.Hints[0].Label;
 
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.False(vm.Hovered);
             Assert.Equal(new List<string> { "close", "invoke:click" }, recorder.Snapshot());
         }
 
         [Fact]
-        public void Match_ForcedHoverOnHintThatCannotClick_RunsItsActionAndIsNotHovered()
+        public async Task Match_ForcedHoverOnHintThatCannotClick_RunsItsActionAndIsNotHovered()
         {
             var recorder = new EventRecorder();
             var vm = CreateViewModel(new ClickFakeHint(), recorder, hint => Task.FromResult(true));
@@ -325,13 +325,13 @@ namespace HuntAndPeck.Tests.ViewModels
 
             vm.MatchString = vm.Hints[0].Label;
 
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.False(vm.Hovered);
             Assert.Equal(new List<string> { "close", "invoke:click" }, recorder.Snapshot());
         }
 
         [Fact]
-        public void Match_ForcedHover_IsHovering_EvenIfModifiersChangeAfterTheChoice()
+        public async Task Match_ForcedHover_IsHovering_EvenIfModifiersChangeAfterTheChoice()
         {
             var vm = CreateViewModel(new FallbackFakeHint("original", new ClickFakeHint()), new EventRecorder(), hint => Task.FromResult(true));
             vm.ForcedAction = MouseAction.Hover;
@@ -339,25 +339,25 @@ namespace HuntAndPeck.Tests.ViewModels
             vm.MatchString = vm.Hints[0].Label;
             vm.ForcedAction = null; // the view sets it on every key press, e.g. one after the choice
 
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.True(vm.Hovering);
         }
 
         [Fact]
-        public void Match_Plain_IsNotHovering_EvenIfAltIsPressedAfterTheChoice()
+        public async Task Match_Plain_IsNotHovering_EvenIfAltIsPressedAfterTheChoice()
         {
             var vm = CreateViewModel(new FallbackFakeHint("original", new ClickFakeHint()), new EventRecorder(), hint => Task.FromResult(true));
 
             vm.MatchString = vm.Hints[0].Label;
             vm.ForcedAction = MouseAction.Hover; // e.g. Alt of Alt+Tab within the close delay
 
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.False(vm.Hovering);
             Assert.False(vm.Hovered);
         }
 
         [Fact]
-        public void Match_ForcedRightClick_IsNotHovered()
+        public async Task Match_ForcedRightClick_IsNotHovered()
         {
             var original = new FallbackFakeHint("original", new ClickFakeHint());
             var vm = CreateViewModel(original, new EventRecorder(), hint => Task.FromResult(true));
@@ -365,7 +365,7 @@ namespace HuntAndPeck.Tests.ViewModels
 
             vm.MatchString = vm.Hints[0].Label;
 
-            Assert.True(vm.PendingInvocation.Wait(TimeSpan.FromSeconds(5)));
+            await AssertCompletesAsync(vm.PendingInvocation);
             Assert.False(vm.Hovered);
         }
 
@@ -491,6 +491,12 @@ namespace HuntAndPeck.Tests.ViewModels
         {
             var hints = Enumerable.Range(0, count).Select(i => (Hint)new PlacedFakeHint(i * 20, 0)).ToList();
             return new OverlayViewModel(new HintSession { Hints = hints }, new HintLabelService(), hint => Task.FromResult(true));
+        }
+
+        private static async Task AssertCompletesAsync(Task task)
+        {
+            Assert.Same(task, await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(5))));
+            await task;
         }
 
         private static OverlayViewModel CreateViewModel(Hint hint, EventRecorder recorder, Func<Hint, Task<bool>> result)
