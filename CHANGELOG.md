@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.0 (2026-11-07)
 
 ### Mouse actions
 - **Alt + last letter** moves the mouse onto the hint's label, where you saw it, instead of the element's centre
