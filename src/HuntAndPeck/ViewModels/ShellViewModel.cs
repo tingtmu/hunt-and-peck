@@ -287,8 +287,17 @@ namespace HuntAndPeck.ViewModels
             }
         }
 
-        /// <summary>How long repeat mode waits after an action before scanning again, so the window shows its effect</summary>
-        public static readonly TimeSpan RepeatSettleDelay = TimeSpan.FromMilliseconds(150);
+        /// <summary>
+        /// How long repeat mode waits after an action before scanning again, so the window shows its effect. With
+        /// menu following, the wait for a menu to appear serves as this delay.
+        /// </summary>
+        public static readonly TimeSpan RepeatSettleDelay = TimeSpan.FromMilliseconds(100);
+
+        /// <summary>
+        /// How long repeat mode waits for a menu after an action that rarely opens one; a right-click waits the full
+        /// <see cref="MenuPopupWatcher.AppearTimeout"/>, as e.g. Explorer's context menu takes a few hundred ms
+        /// </summary>
+        public static readonly TimeSpan RepeatMenuWait = TimeSpan.FromMilliseconds(100);
 
         /// <summary>
         /// Repeat mode: once the action finished, scans the foreground window again and shows its hints, still in
@@ -300,11 +309,13 @@ namespace HuntAndPeck.ViewModels
         {
             var repeating = new CancellationTokenSource();
             _menuFollowing = repeating;
+            var waited = Stopwatch.StartNew();
             try
             {
                 if (_menuHints != null)
                 {
-                    if (await _menuHints.FollowAsync(session, vm, before, repeating.Token))
+                    var menuWait = vm.ChosenAction == MouseAction.RightClick ? (TimeSpan?)null : RepeatMenuWait;
+                    if (await _menuHints.FollowAsync(session, vm, before, repeating.Token, menuWait))
                     {
                         Trace.TraceInformation("Repeat: ended, the action opened a menu");
                         return;
@@ -313,9 +324,9 @@ namespace HuntAndPeck.ViewModels
                 else
                 {
                     await Task.WhenAny(vm.PendingInvocation, _delay(MenuHintFollower.InvocationWait));
+                    await _delay(RepeatSettleDelay);
                 }
 
-                await _delay(RepeatSettleDelay);
                 if (repeating.IsCancellationRequested)
                 {
                     Trace.TraceInformation("Repeat: ended by a hotkey");
@@ -327,7 +338,7 @@ namespace HuntAndPeck.ViewModels
                 {
                     _menuFollowing = null;
                 }
-                Trace.TraceInformation("Repeat: scanning again");
+                Trace.TraceInformation("Repeat: scanning again, {0} ms after the overlay closed", waited.ElapsedMilliseconds);
                 RunSession(() => _hintProviderService.EnumHintsAsync(), next => ShowHintOverlay(next, repeat: true));
             }
             catch (Exception ex)

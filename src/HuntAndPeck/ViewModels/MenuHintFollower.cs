@@ -63,15 +63,19 @@ namespace HuntAndPeck.ViewModels
         /// <param name="overlay">Its view model</param>
         /// <param name="before">The <see cref="Snapshot"/> taken before that overlay was shown</param>
         /// <param name="following">Cancelled when the user moves on (presses the hotkey)</param>
+        /// <param name="firstAppearTimeout">
+        /// How long the first menu may take to appear (<see cref="MenuPopupWatcher.AppearTimeout"/> if null);
+        /// repeat mode waits less after an action that rarely opens a menu
+        /// </param>
         /// <returns>True if a menu overlay was shown</returns>
-        public async Task<bool> FollowAsync(HintSession session, OverlayViewModel overlay, HashSet<IntPtr> before, CancellationToken following)
+        public async Task<bool> FollowAsync(HintSession session, OverlayViewModel overlay, HashSet<IntPtr> before, CancellationToken following, TimeSpan? firstAppearTimeout = null)
         {
             var shown = false;
             for (var depth = 0; depth < MaxDepth && overlay.HintInvoked && !following.IsCancellationRequested; depth++)
             {
                 await Task.WhenAny(overlay.PendingInvocation, _delay(InvocationWait));
 
-                var menus = await _popups.WaitForNewAsync(session.OwningWindow, before);
+                var menus = await _popups.WaitForNewAsync(session.OwningWindow, before, depth == 0 ? firstAppearTimeout : null);
                 if (menus.Count == 0 || following.IsCancellationRequested)
                 {
                     return shown;

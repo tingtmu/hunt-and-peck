@@ -646,7 +646,9 @@ namespace HuntAndPeck.Tests.ViewModels
             public Task Delay(TimeSpan duration)
             {
                 Now += duration;
-                if (duration != ShellViewModel.RepeatSettleDelay && duration != MenuPopupWatcher.SettleDelay)
+                // Waits that run after the overlay closed are held, as real ones would be, until ReleaseAll; the
+                // polling for a menu (PollInterval) too, so the rescan doesn't start while the overlay is still "open"
+                if (duration != ShellViewModel.RepeatSettleDelay && duration != MenuPopupWatcher.SettleDelay && duration != MenuPopupWatcher.PollInterval)
                 {
                     return Task.CompletedTask;
                 }

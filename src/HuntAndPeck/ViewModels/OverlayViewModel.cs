@@ -235,6 +235,12 @@ namespace HuntAndPeck.ViewModels
         /// </summary>
         public bool Hovering { get; private set; }
 
+        /// <summary>
+        /// The <see cref="ForcedAction"/> the hint was chosen with (null: its UI Automation action); unlike
+        /// <see cref="ForcedAction"/>, unchanged by keys pressed after the choice
+        /// </summary>
+        public MouseAction? ChosenAction { get; private set; }
+
         /// <summary>True once a forced <see cref="MouseAction.Hover"/> moved the cursor onto the chosen element</summary>
         public bool Hovered { get; private set; }
 
@@ -252,6 +258,7 @@ namespace HuntAndPeck.ViewModels
                 return;
             }
             _invoked = true;
+            ChosenAction = ForcedAction;
 
             if (ForcedAction.HasValue)
             {
