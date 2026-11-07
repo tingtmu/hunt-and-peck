@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Scoop: this repo is now a Scoop bucket. `scoop bucket add hap https://github.com/tingtmu/hunt-and-peck`, then
+  `scoop install hap/huntandpeck`; `scoop update huntandpeck` picks up new releases. The release workflow updates
+  `bucket/huntandpeck.json` (version, URL, SHA-256) after each `v*` tag is published.
+
 ## 1.10.1 (2026-10-23)
 
 No changes to the app itself.

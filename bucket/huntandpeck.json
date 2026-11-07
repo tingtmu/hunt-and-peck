@@ -1,0 +1,24 @@
+{
+    "version": "1.10.1",
+    "description": "Keyboard hints for any Windows app via UI Automation (vimium/vimperator style)",
+    "homepage": "https://github.com/tingtmu/hunt-and-peck",
+    "license": "Unknown",
+    "url": "https://github.com/tingtmu/hunt-and-peck/releases/download/v1.10.1/HuntAndPeck-1.10.1.zip",
+    "hash": "0a60ccc5684a45b482bc79d1398d01c2430bb0f3bf58088468d4795805cb56ce",
+    "bin": "hap.exe",
+    "shortcuts": [
+        [
+            "hap.exe",
+            "HuntAndPeck"
+        ]
+    ],
+    "notes": "HuntAndPeck's settings are keyed on the path of hap.exe. Scoop's 'current' folder keeps that path stable across updates, so your settings carry over.",
+    "checkver": "github",
+    "autoupdate": {
+        "url": "https://github.com/tingtmu/hunt-and-peck/releases/download/v$version/HuntAndPeck-$version.zip",
+        "hash": {
+            "url": "$baseurl/SHA256SUMS.txt",
+            "regex": "$sha256\\s+$basename"
+        }
+    }
+}
