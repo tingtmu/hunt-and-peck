@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.12.1 (2026-11-07)
+
+No changes to the app itself.
+
+### Development
+- The release workflow uses the Node.js 24 versions of its GitHub Actions (checkout v7, setup-msbuild v3, setup-dotnet v6,
+  cache v6, upload-artifact v7, download-artifact v8, action-gh-release v3); the Node.js 20 ones are deprecated.
+
 ## 1.12.0 (2026-11-07)
 
 ### Overlay
