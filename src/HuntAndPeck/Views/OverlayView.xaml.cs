@@ -163,7 +163,9 @@ namespace HuntAndPeck.Views
                 return;
             }
 
-            if (e.Key == Key.Space)
+            // Alt may still be held from the Alt+; hotkey: Alt+Space arrives as a system key and would open the
+            // window's system menu, taking the overlay away
+            if ((e.Key == Key.System ? e.SystemKey : e.Key) == Key.Space)
             {
                 // Repeat mode; Space types nothing (it never matches a label)
                 e.Handled = true;
