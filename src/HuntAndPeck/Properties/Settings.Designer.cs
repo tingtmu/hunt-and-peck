@@ -73,7 +73,7 @@ namespace HuntAndPeck.Properties {
 
     [global::System.Configuration.UserScopedSettingAttribute()]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-    [global::System.Configuration.DefaultSettingValueAttribute("SADFJKLEWCMPGH")]
+    [global::System.Configuration.DefaultSettingValueAttribute("ASDFGHJKLQWERUIO")]
     public string HintAlphabet {
         get {
             return ((string)(this["HintAlphabet"]));

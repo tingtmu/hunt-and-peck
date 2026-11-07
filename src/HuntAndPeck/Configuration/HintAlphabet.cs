@@ -7,7 +7,7 @@ namespace HuntAndPeck.Configuration
     /// </summary>
     internal static class HintAlphabet
     {
-        public const string Default = "SADFJKLEWCMPGH";
+        public const string Default = "ASDFGHJKLQWERUIO";
         public const int MinLength = 2;
         public const int MaxLength = 26;
 

@@ -17,7 +17,7 @@
       <Value Profile="(Default)">Ctrl+OemSemicolon</Value>
     </Setting>
     <Setting Name="HintAlphabet" Type="System.String" Scope="User">
-      <Value Profile="(Default)">SADFJKLEWCMPGH</Value>
+      <Value Profile="(Default)">ASDFGHJKLQWERUIO</Value>
     </Setting>
     <Setting Name="HintStyle" Type="System.String" Scope="User">
       <Value Profile="(Default)">Classic</Value>
