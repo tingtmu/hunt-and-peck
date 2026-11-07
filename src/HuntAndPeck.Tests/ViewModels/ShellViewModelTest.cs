@@ -312,6 +312,372 @@ namespace HuntAndPeck.Tests.ViewModels
             }
         }
 
+        [Fact]
+        public void Repeat_AfterAnInvokedHint_ScansAgainAndShowsAnOverlayStillInRepeatMode()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var provider = new FakeHintProvider();
+                var keys = new FakeKeyListener();
+                var delay = new ControlledDelay();
+                var errors = new List<Exception>();
+                var overlays = new List<OverlayViewModel>();
+                CreateRepeatShell(provider, keys, delay, vm =>
+                {
+                    overlays.Add(vm);
+                    Act(vm, repeat: overlays.Count == 1, choose: true);
+                }, errors);
+
+                keys.Press();
+                provider.Pending[0].SetResult(OneHintSession());
+
+                // The overlay is closed; the shell waits for the window to settle before scanning
+                Assert.Single(provider.Pending);
+                Assert.Equal(1, delay.PendingCount);
+                delay.ReleaseAll();
+                Assert.Equal(2, provider.Pending.Count);
+                provider.Pending[1].SetResult(OneHintSession());
+
+                Assert.Equal(2, overlays.Count);
+                Assert.True(overlays[0].CanRepeat);
+                Assert.True(overlays[1].CanRepeat);
+                Assert.True(overlays[1].Repeat);
+                Assert.Empty(errors);
+            }
+        }
+
+        [Fact]
+        public void Repeat_KeepsGoingUntilAnOverlayEndsWithoutAChoice()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var provider = new FakeHintProvider();
+                var keys = new FakeKeyListener();
+                var delay = new ControlledDelay();
+                var errors = new List<Exception>();
+                var overlays = new List<OverlayViewModel>();
+                CreateRepeatShell(provider, keys, delay, vm =>
+                {
+                    overlays.Add(vm);
+                    // Round 1 turns repeat on and chooses, round 2 chooses, round 3 is Esc
+                    Act(vm, repeat: overlays.Count == 1, choose: overlays.Count < 3);
+                }, errors);
+
+                keys.Press();
+                for (var round = 0; round < 3; round++)
+                {
+                    provider.Pending[round].SetResult(OneHintSession());
+                    delay.ReleaseAll();
+                }
+
+                Assert.Equal(3, overlays.Count);
+                Assert.Equal(3, provider.Pending.Count);
+                Assert.Equal(0, delay.PendingCount);
+                Assert.Empty(errors);
+
+                // The hotkey works as usual afterwards
+                keys.Press();
+                Assert.Equal(4, provider.Pending.Count);
+            }
+        }
+
+        [Fact]
+        public void Repeat_OnButNothingInvoked_DoesNotScanAgain()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var provider = new FakeHintProvider();
+                var keys = new FakeKeyListener();
+                var delay = new ControlledDelay();
+                var overlays = new List<OverlayViewModel>();
+                CreateRepeatShell(provider, keys, delay, vm =>
+                {
+                    overlays.Add(vm);
+                    Act(vm, repeat: true, choose: false); // Esc
+                }, new List<Exception>());
+
+                keys.Press();
+                provider.Pending[0].SetResult(OneHintSession());
+                delay.ReleaseAll();
+
+                Assert.Single(overlays);
+                Assert.True(overlays[0].Repeat);
+                Assert.Single(provider.Pending);
+                Assert.Equal(0, delay.PendingCount);
+            }
+        }
+
+        [Fact]
+        public void Repeat_Off_DoesNotScanAgainAfterAnInvokedHint()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var provider = new FakeHintProvider();
+                var keys = new FakeKeyListener();
+                var delay = new ControlledDelay();
+                var overlays = new List<OverlayViewModel>();
+                CreateRepeatShell(provider, keys, delay, vm =>
+                {
+                    overlays.Add(vm);
+                    Act(vm, repeat: false, choose: true);
+                }, new List<Exception>());
+
+                keys.Press();
+                provider.Pending[0].SetResult(OneHintSession());
+                delay.ReleaseAll();
+
+                Assert.Single(overlays);
+                Assert.False(overlays[0].Repeat);
+                Assert.Single(provider.Pending);
+                Assert.Equal(0, delay.PendingCount);
+            }
+        }
+
+        [Fact]
+        public void Repeat_NextScanHasNothingToClick_ShowsANoticeAndEndsRepeating()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var provider = new FakeHintProvider();
+                var keys = new FakeKeyListener();
+                var delay = new ControlledDelay();
+                var overlays = new List<OverlayViewModel>();
+                var notices = new List<NoticeViewModel>();
+                CreateRepeatShell(provider, keys, delay, vm =>
+                {
+                    overlays.Add(vm);
+                    Act(vm, repeat: true, choose: true);
+                }, new List<Exception>(), notices.Add);
+
+                keys.Press();
+                provider.Pending[0].SetResult(OneHintSession());
+                delay.ReleaseAll();
+                provider.Pending[1].SetResult(new HintSession { Hints = new List<Hint>() });
+                delay.ReleaseAll();
+
+                Assert.Single(overlays);
+                Assert.Equal(ShellViewModel.NothingToClickNotice, Assert.Single(notices).Message);
+                Assert.Equal(2, provider.Pending.Count);
+                Assert.Equal(0, delay.PendingCount);
+
+                // Repeating is over, but the hotkey works again at once
+                keys.Press();
+                Assert.Equal(3, provider.Pending.Count);
+            }
+        }
+
+        [Fact]
+        public void Repeat_NextScanGetsNoResponse_ShowsANoticeAndEndsRepeating()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var provider = new FakeHintProvider();
+                var keys = new FakeKeyListener();
+                var delay = new ControlledDelay();
+                var notices = new List<NoticeViewModel>();
+                CreateRepeatShell(provider, keys, delay, vm => Act(vm, repeat: true, choose: true), new List<Exception>(), notices.Add);
+
+                keys.Press();
+                provider.Pending[0].SetResult(OneHintSession());
+                delay.ReleaseAll();
+                provider.Pending[1].SetResult(null);
+                delay.ReleaseAll();
+
+                Assert.Equal(ShellViewModel.NoResponseNotice, Assert.Single(notices).Message);
+                Assert.Equal(2, provider.Pending.Count);
+            }
+        }
+
+        [Fact]
+        public void Repeat_HotKeyPressedWhileWaiting_EndsRepeatingAndTheHotKeysOverlayIsNotRepeating()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var provider = new FakeHintProvider();
+                var keys = new FakeKeyListener();
+                var delay = new ControlledDelay();
+                var overlays = new List<OverlayViewModel>();
+                CreateRepeatShell(provider, keys, delay, vm =>
+                {
+                    overlays.Add(vm);
+                    Act(vm, repeat: overlays.Count == 1, choose: overlays.Count == 1);
+                }, new List<Exception>());
+                keys.Press();
+                provider.Pending[0].SetResult(OneHintSession());
+                Assert.Equal(1, delay.PendingCount);
+
+                // The user presses the hotkey before the settle delay is over
+                keys.Press();
+                Assert.Equal(2, provider.Pending.Count);
+                delay.ReleaseAll();
+
+                // Repeat mode did not scan on top of the user's own scan
+                Assert.Equal(2, provider.Pending.Count);
+                provider.Pending[1].SetResult(OneHintSession());
+                Assert.Equal(2, overlays.Count);
+                Assert.False(overlays[1].Repeat);
+                Assert.Equal(0, delay.PendingCount);
+            }
+        }
+
+        [Fact]
+        public void Repeat_AfterAHover_StartsScrollingInsteadOfScanningAgain()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var provider = new FakeHintProvider();
+                var keys = new FakeKeyListener();
+                var delay = new ControlledDelay();
+                var scrolls = new List<FakeScroll>();
+                CreateRepeatShell(provider, keys, delay, vm =>
+                {
+                    vm.ToggleRepeat();
+                    Choose(vm, MouseAction.Hover);
+                }, new List<Exception>(), startHoverScroll: () => StartScroll(scrolls));
+
+                keys.Press();
+                provider.Pending[0].SetResult(OneHintSession());
+                delay.ReleaseAll();
+
+                Assert.Single(scrolls);
+                Assert.Single(provider.Pending);
+                Assert.Equal(0, delay.PendingCount);
+            }
+        }
+
+        [Fact]
+        public void Repeat_ActionOpenedAMenu_ShowsTheMenuOverlayAndStopsRepeating()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var windows = new FakeWindows();
+                var delay = new ControlledDelay();
+                var provider = new FakeHintProvider { PopupSession = OneHintSession() };
+                var keys = new FakeKeyListener();
+                var overlays = new List<OverlayViewModel>();
+                var menuOverlays = new List<OverlayViewModel>();
+                var watcher = new MenuPopupWatcher(windows, delay.Delay, () => delay.Now);
+                CreateRepeatShell(provider, keys, delay, vm =>
+                {
+                    overlays.Add(vm);
+                    Act(vm, repeat: true, choose: true);
+                    windows.Add(new TopLevelWindow(new IntPtr(5), 10, "#32768", true)); // the action opened a menu
+                }, new List<Exception>(), menuPopups: watcher, showMenuOverlay: (vm, menus) => menuOverlays.Add(vm));
+
+                keys.Press();
+                provider.Pending[0].SetResult(OneHintSession());
+                delay.ReleaseAll();
+
+                var menu = Assert.Single(menuOverlays);
+                Assert.False(menu.CanRepeat);
+                Assert.False(menu.Repeat);
+                delay.ReleaseAll();
+                Assert.Single(overlays);
+                Assert.Single(provider.Pending);
+            }
+        }
+
+        [Fact]
+        public void Repeat_NoMenuOpened_ScansAgainAfterTheSettleDelay()
+        {
+            using (UseNoSynchronizationContext())
+            {
+                var windows = new FakeWindows();
+                var delay = new ControlledDelay();
+                var provider = new FakeHintProvider();
+                var keys = new FakeKeyListener();
+                var overlays = new List<OverlayViewModel>();
+                var watcher = new MenuPopupWatcher(windows, delay.Delay, () => delay.Now);
+                CreateRepeatShell(provider, keys, delay, vm =>
+                {
+                    overlays.Add(vm);
+                    Act(vm, repeat: overlays.Count == 1, choose: overlays.Count == 1);
+                }, new List<Exception>(), menuPopups: watcher, showMenuOverlay: (vm, menus) => { });
+
+                keys.Press();
+                provider.Pending[0].SetResult(OneHintSession());
+                delay.ReleaseAll();
+                Assert.Equal(2, provider.Pending.Count);
+                provider.Pending[1].SetResult(OneHintSession());
+
+                Assert.Equal(2, overlays.Count);
+                Assert.True(overlays[1].Repeat);
+            }
+        }
+
+        /// <summary>The overlay's user turns repeat on if asked (Space), then chooses the only hint (or presses Esc: nothing)</summary>
+        private static void Act(OverlayViewModel vm, bool repeat, bool choose)
+        {
+            if (repeat && !vm.Repeat)
+            {
+                Assert.True(vm.ToggleRepeat());
+            }
+            if (choose)
+            {
+                Choose(vm, null);
+            }
+        }
+
+        private static ShellViewModel CreateRepeatShell(
+            FakeHintProvider provider, FakeKeyListener keys, ControlledDelay delay, Action<OverlayViewModel> showOverlay, List<Exception> errors,
+            Action<NoticeViewModel> showNotice = null, Func<IDisposable> startHoverScroll = null,
+            MenuPopupWatcher menuPopups = null, Action<OverlayViewModel, IReadOnlyList<IntPtr>> showMenuOverlay = null)
+        {
+            return new ShellViewModel(
+                showOverlay, vm => { }, vm => { }, text => { }, (context, ex) => errors.Add(ex),
+                new HintLabelService(), provider, null, keys,
+                new StartupRegistrationService(new FakeRegistryRunKey(), ExePath, path => true),
+                new FakeUserSettings(), message => { }, showNotice, menuPopups, showMenuOverlay, startHoverScroll,
+                delay: delay.Delay);
+        }
+
+        /// <summary>
+        /// Settle delays (repeat mode's and the menu watcher's) wait until released, as real ones yield to the
+        /// message loop, after the modal overlay returned; other waits end at once
+        /// </summary>
+        private sealed class ControlledDelay
+        {
+            private readonly List<TaskCompletionSource<bool>> _pending = new List<TaskCompletionSource<bool>>();
+
+            public TimeSpan Now { get; private set; }
+
+            public int PendingCount => _pending.Count;
+
+            public Task Delay(TimeSpan duration)
+            {
+                Now += duration;
+                if (duration != ShellViewModel.RepeatSettleDelay && duration != MenuPopupWatcher.SettleDelay)
+                {
+                    return Task.CompletedTask;
+                }
+                var waiting = new TaskCompletionSource<bool>();
+                _pending.Add(waiting);
+                return waiting.Task;
+            }
+
+            /// <summary>Ends every wait, including those started by the continuations meanwhile</summary>
+            public void ReleaseAll()
+            {
+                while (_pending.Count > 0)
+                {
+                    var next = _pending[0];
+                    _pending.RemoveAt(0);
+                    next.SetResult(true);
+                }
+            }
+        }
+
+        private sealed class FakeWindows : ITopLevelWindowSource
+        {
+            private readonly List<TopLevelWindow> _windows = new List<TopLevelWindow> { new TopLevelWindow(new IntPtr(1), 10, "App", false) };
+
+            public void Add(TopLevelWindow window) => _windows.Add(window);
+
+            public IReadOnlyList<TopLevelWindow> VisibleWindows() => new List<TopLevelWindow>(_windows);
+
+            public uint ProcessOf(IntPtr hWnd) => 10;
+        }
+
         private static HintSession OneHintSession() => new HintSession { Hints = new List<Hint> { new FakeHint() } };
 
         /// <summary>Types the only hint's label, as the view does, with the action the modifiers chose</summary>

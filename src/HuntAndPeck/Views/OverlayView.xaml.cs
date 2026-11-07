@@ -163,6 +163,18 @@ namespace HuntAndPeck.Views
                 return;
             }
 
+            if (e.Key == Key.Space)
+            {
+                // Repeat mode; Space types nothing (it never matches a label)
+                e.Handled = true;
+                var repeating = DataContext as OverlayViewModel;
+                if (repeating == null || !repeating.ToggleRepeat())
+                {
+                    Shake();
+                }
+                return;
+            }
+
             // Runs before the key's text reaches the match box: the modifiers held with the letter choose a mouse
             // action (OverlayViewModel.ForcedActionFor). The real Shift state, not the letter's case, so Caps Lock
             // doesn't force clicks.

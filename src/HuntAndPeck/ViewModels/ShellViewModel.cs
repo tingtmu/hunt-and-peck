@@ -36,6 +36,9 @@ namespace HuntAndPeck.ViewModels
         private readonly Func<IDisposable> _startHoverScroll;
         private readonly Action _checkForUpdates;
 
+        /// <summary>Waits; Task.Delay outside tests</summary>
+        private readonly Func<TimeSpan, Task> _delay;
+
         /// <summary>Scrolling under the cursor after the last hover (see <see cref="StartHoverScroll"/>); null if none</summary>
         private IDisposable _hoverScroll;
 
@@ -67,14 +70,16 @@ namespace HuntAndPeck.ViewModels
             MenuPopupWatcher menuPopups = null,
             Action<OverlayViewModel, IReadOnlyList<IntPtr>> showMenuOverlay = null,
             Func<IDisposable> startHoverScroll = null,
-            Action checkForUpdates = null)
+            Action checkForUpdates = null,
+            Func<TimeSpan, Task> delay = null)
         {
+            _delay = delay ?? Task.Delay;
             _checkForUpdates = checkForUpdates;
             _showNotice = showNotice;
             _startHoverScroll = startHoverScroll;
             if (menuPopups != null && showMenuOverlay != null)
             {
-                _menuHints = new MenuHintFollower(menuPopups, hintProviderService, CreateOverlayViewModel, showMenuOverlay, Task.Delay, TryBeginMenuSession, EndMenuSession);
+                _menuHints = new MenuHintFollower(menuPopups, hintProviderService, CreateOverlayViewModel, showMenuOverlay, _delay, TryBeginMenuSession, EndMenuSession);
             }
             _showOverlay = showOverlay;
             _showDebugOverlay = showDebugOverlay;
@@ -240,8 +245,14 @@ namespace HuntAndPeck.ViewModels
 
         private void ShowHintOverlay(HintSession session)
         {
+            ShowHintOverlay(session, repeat: false);
+        }
+
+        /// <param name="repeat">True for an overlay shown by repeat mode (<see cref="ContinueRepeating"/>)</param>
+        private void ShowHintOverlay(HintSession session, bool repeat)
+        {
             var before = _menuHints?.Snapshot();
-            var vm = CreateOverlayViewModel(session);
+            var vm = CreateOverlayViewModel(session, canRepeat: true, repeat: repeat);
             _showOverlay(vm);
             FollowUp(session, vm, before);
         }
@@ -256,8 +267,9 @@ namespace HuntAndPeck.ViewModels
         }
 
         /// <summary>
-        /// After a hover, scrolls under the cursor; after any other action, follows the menu it may open. Not both:
-        /// the menu overlay's keyboard hook would compete with the scrolling's.
+        /// After a hover, scrolls under the cursor; after any other action, follows the menu it may open, and in
+        /// repeat mode then shows new hints. A hover ends repeat mode: the menu overlay's or the next overlay's
+        /// keys would compete with the scrolling's.
         /// </summary>
         private void FollowUp(HintSession session, OverlayViewModel vm, HashSet<IntPtr> before)
         {
@@ -265,9 +277,70 @@ namespace HuntAndPeck.ViewModels
             {
                 StartHoverScroll(vm);
             }
+            else if (vm.Repeat && vm.HintInvoked)
+            {
+                ContinueRepeating(session, vm, before);
+            }
             else
             {
                 StartFollowingMenus(session, vm, before);
+            }
+        }
+
+        /// <summary>How long repeat mode waits after an action before scanning again, so the window shows its effect</summary>
+        public static readonly TimeSpan RepeatSettleDelay = TimeSpan.FromMilliseconds(150);
+
+        /// <summary>
+        /// Repeat mode: once the action finished, scans the foreground window again and shows its hints, still in
+        /// repeat mode. Stops if the action opened a menu (its hints are shown as usual), or if the user pressed a
+        /// hotkey meanwhile (<see cref="RunSession"/> cancels <see cref="_menuFollowing"/>). The next overlay's Esc,
+        /// or a window with nothing to click, ends it too.
+        /// </summary>
+        private async void ContinueRepeating(HintSession session, OverlayViewModel vm, HashSet<IntPtr> before)
+        {
+            var repeating = new CancellationTokenSource();
+            _menuFollowing = repeating;
+            try
+            {
+                if (_menuHints != null)
+                {
+                    if (await _menuHints.FollowAsync(session, vm, before, repeating.Token))
+                    {
+                        Trace.TraceInformation("Repeat: ended, the action opened a menu");
+                        return;
+                    }
+                }
+                else
+                {
+                    await Task.WhenAny(vm.PendingInvocation, _delay(MenuHintFollower.InvocationWait));
+                }
+
+                await _delay(RepeatSettleDelay);
+                if (repeating.IsCancellationRequested)
+                {
+                    Trace.TraceInformation("Repeat: ended by a hotkey");
+                    return;
+                }
+
+                // Done waiting: nothing left for RunSession to cancel
+                if (_menuFollowing == repeating)
+                {
+                    _menuFollowing = null;
+                }
+                Trace.TraceInformation("Repeat: scanning again");
+                RunSession(() => _hintProviderService.EnumHintsAsync(), next => ShowHintOverlay(next, repeat: true));
+            }
+            catch (Exception ex)
+            {
+                // async void: an escaping exception would surface on the dispatcher
+                _reportError("Repeating hints failed", ex);
+            }
+            finally
+            {
+                if (_menuFollowing == repeating)
+                {
+                    _menuFollowing = null;
+                }
             }
         }
 
@@ -351,8 +424,13 @@ namespace HuntAndPeck.ViewModels
 
         private OverlayViewModel CreateOverlayViewModel(HintSession session)
         {
+            return CreateOverlayViewModel(session, canRepeat: false, repeat: false);
+        }
+
+        private OverlayViewModel CreateOverlayViewModel(HintSession session, bool canRepeat, bool repeat)
+        {
             var settings = _settings.Load();
-            return new OverlayViewModel(session, _hintLabelService, _hintProviderService.InvokeHintAsync, settings.FontSize, settings.HintStyle);
+            return new OverlayViewModel(session, _hintLabelService, _hintProviderService.InvokeHintAsync, settings.FontSize, settings.HintStyle, canRepeat, repeat);
         }
 
         /// <summary>

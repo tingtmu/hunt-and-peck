@@ -63,6 +63,7 @@ namespace HuntAndPeck.ViewModels
             new KeyValuePair<string, string>("Letters", "Type a hint's letters to select it"),
             new KeyValuePair<string, string>("Backspace", "Delete the last typed letter"),
             new KeyValuePair<string, string>("Esc", "Close the hints"),
+            new KeyValuePair<string, string>("Space", "Repeat (Alt + ; hints): after each action, show new hints until Esc"),
             new KeyValuePair<string, string>("Shift + last letter", "Left click (for elements that ignore their action)"),
             new KeyValuePair<string, string>("Ctrl + last letter", "Right-click (context menu)"),
             new KeyValuePair<string, string>("Ctrl + Shift + last letter", "Double-click (e.g. open a file)"),

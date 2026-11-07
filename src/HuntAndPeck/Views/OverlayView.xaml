@@ -58,13 +58,39 @@
         <SolidColorBrush Color="Transparent" />
     </local:PhysicalOverlayWindow.Background>
     <Grid x:Name="layoutGrid">
-        <TextBox x:Name="MatchStringControl" Text="{Binding MatchString, UpdateSourceTrigger=PropertyChanged, Mode=OneWayToSource}" VerticalAlignment="Bottom" HorizontalAlignment="Center" Style="{StaticResource MatchBoxStyle}"
-                 PreviewTextInput="MatchStringControl_OnPreviewTextInput">
-            <TextBox.RenderTransform>
-                <!-- Shaken when a typed letter matches no hint -->
-                <TranslateTransform x:Name="MatchBoxShake" />
-            </TextBox.RenderTransform>
-        </TextBox>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Center">
+            <!-- Repeat mode (Space): a pill in the match box's colours, shown even before anything is typed -->
+            <Border Background="{DynamicResource MatchBoxBackground}"
+                    BorderBrush="{DynamicResource MatchBoxBorder}"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    Padding="12 5"
+                    Margin="0 0 8 10"
+                    VerticalAlignment="Bottom">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Repeat}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="14" ShadowDepth="2" Direction="270" Opacity="0.25" />
+                </Border.Effect>
+                <TextBlock Text="&#x27F3; Repeat" FontFamily="Segoe UI Variable Text, Segoe UI Symbol, Segoe UI" FontSize="16" FontWeight="SemiBold"
+                           Foreground="{DynamicResource MatchBoxText}" />
+            </Border>
+            <TextBox x:Name="MatchStringControl" Text="{Binding MatchString, UpdateSourceTrigger=PropertyChanged, Mode=OneWayToSource}" VerticalAlignment="Bottom" Style="{StaticResource MatchBoxStyle}"
+                     PreviewTextInput="MatchStringControl_OnPreviewTextInput">
+                <TextBox.RenderTransform>
+                    <!-- Shaken when a typed letter matches no hint -->
+                    <TranslateTransform x:Name="MatchBoxShake" />
+                </TextBox.RenderTransform>
+            </TextBox>
+        </StackPanel>
         <ItemsControl ItemsSource="{Binding Hints}">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -74,8 +100,10 @@
 
             <ItemsControl.ItemContainerStyle>
                 <Style>
-                    <Setter Property="Canvas.Top" Value="{Binding Hint.BoundingRectangle.Top}" />
-                    <Setter Property="Canvas.Left" Value="{Binding Hint.BoundingRectangle.Left}" />
+                    <!-- At the element's top left corner, unless moved off another label (LabelLayout); the
+                         Viewbox below still shrinks it to the element's size, as LabelLayout assumed -->
+                    <Setter Property="Canvas.Top" Value="{Binding LabelTop}" />
+                    <Setter Property="Canvas.Left" Value="{Binding LabelLeft}" />
                     <Style.Triggers>
                         <!-- Hints that no longer match the typed letters disappear -->
                         <DataTrigger Binding="{Binding Active}" Value="false">

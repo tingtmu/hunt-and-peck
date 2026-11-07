@@ -44,11 +44,11 @@ namespace HuntAndPeck.Models
         public virtual Hint CreateClickHint(MouseAction action) => null;
 
         /// <summary>
-        /// As <see cref="CreateClickHint(MouseAction)"/>, for a hint shown with a label of about
-        /// <paramref name="labelSize"/> (physical pixels) at the element's top left corner: a hover lands on the
-        /// label, where the user saw the hint, instead of the element's centre
+        /// As <see cref="CreateClickHint(MouseAction)"/>, for a hint whose label the overlay drew at about
+        /// <paramref name="label"/> (physical pixels, relative to the element's top left corner): a hover lands on
+        /// the label, where the user saw the hint, instead of the element's centre
         /// </summary>
-        public virtual Hint CreateClickHint(MouseAction action, Size labelSize) => CreateClickHint(action);
+        public virtual Hint CreateClickHint(MouseAction action, Rect label) => CreateClickHint(action);
 
         /// <summary>
         /// True if a failed action may be retried as a click (<see cref="CreateClickHint"/>). False where a
